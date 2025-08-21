@@ -11,7 +11,8 @@
     ],
     "manifest_version": 3,
     "action": {
-        "default_popup": "src/main.html"
+        "default_popup": "src/main.html",
+        "default_icon": "autofill.png"
     },
     "options_ui": {
         "page": "src/options.html",
