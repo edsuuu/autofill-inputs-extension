@@ -1,6 +1,6 @@
 # Auto Preenchimento (OPEN SOURCE) 🚀
 
-Extensão para Navegadores que facilita o **preenchimento automático de formulários**.  
+Extensão para Navegadores que facilita o **preenchimento automático de formulários**.
 Disponível gratuitamente na [Chrome Web Store](https://chromewebstore.google.com/detail/auto-preenchimento/mpccajhhjpakpfloaeegfgmafimboaaa).
 
 ---
