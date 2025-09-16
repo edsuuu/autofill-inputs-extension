@@ -54,10 +54,9 @@ export default function () {
     };
 
     const autoFill = async (active: boolean) => {
-        setToggle(active)
-        await browser.storage.local.set({ enabled: active })
-    }
-
+        setToggle(active);
+        await browser.storage.local.set({ enabled: active });
+    };
     return (
         <div className="w-[400px] p-4">
             <div className="flex flex-row items-center gap-4">
@@ -98,6 +97,7 @@ export default function () {
             </div>
 
             <div className="flex flex-row gap-4">
+
                 <button onClick={openOptions} className="flex-1 mt-5 p-2 rounded-md bg-blue-400 text-white cursor-pointer">
                     Abrir formulários salvos
                 </button>
