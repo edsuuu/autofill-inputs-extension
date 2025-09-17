@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import browser from 'webextension-polyfill';
 
 export class Helper {
     constructor(automatic: boolean, windowLocationHref: string) {
-        this.autoFill(windowLocationHref, automatic)
+        this.autoFill(windowLocationHref, automatic);
     }
 
     public async autoFill(windowLocationHref: string, automatic: boolean = false) {

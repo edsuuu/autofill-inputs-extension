@@ -43,6 +43,15 @@
                 "src/utils/autofill.ts"
             ],
             "run_at": "document_idle"
+        },
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "src/utils/floating-button.ts"
+            ],
+            "run_at": "document_idle"
         }
     ]
 }
