@@ -3,7 +3,7 @@
     "{{firefox}}.manifest_version": 2,
     "name": "Auto preenchimento",
     "description": "AutoFill inputs in all page with forms.",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "permissions": [
         "storage",
         "scripting",
