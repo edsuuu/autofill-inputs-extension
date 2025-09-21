@@ -19,7 +19,9 @@ export default function Options() {
     const [editingFields, setEditingFields] = useState<FormField[]>([]);
 
     useEffect(() => {
-        loadSavedForms();
+        (async function () {
+            await loadSavedForms();
+        })();
     }, []);
 
     const loadSavedForms = async () => {
@@ -28,7 +30,7 @@ export default function Options() {
             const forms: SavedForm[] = [];
 
             Object.keys(data).forEach((key) => {
-                if (key !== 'enabled' && data[key]) {
+                if (!['enabled', 'floatingButton'].includes(key) && data[key]) {
                     forms.push({
                         url: key,
                         fields: data[key],
@@ -134,11 +136,11 @@ export default function Options() {
                                                     <div key={index} className="space-y-2">
                                                         <label
                                                             className={`block text-sm font-medium ${
-                                                                field.type === 'radio' || field.type === 'select' || field.type === 'select-one' ? 'text-gray-400' : 'text-gray-700'
+                                                                ['radio', 'radio', 'select-one'].includes(field.type as string) ? 'text-gray-400' : 'text-gray-700'
                                                             }`}
                                                         >
                                                             {field.name || field.id || `Campo ${index + 1}`}
-                                                            {(field.type === 'radio' || field.type === 'select' || field.type === 'select-one' || field.type === 'checkbox') && (
+                                                            {['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string) && (
                                                                 <span className="ml-2 text-xs text-gray-400">(Desabilitado)</span>
                                                             )}
                                                         </label>
@@ -146,7 +148,7 @@ export default function Options() {
                                                             type="text"
                                                             value={field.value}
                                                             onChange={(e) => updateFieldValue(index, e.target.value)}
-                                                            disabled={field.type === 'radio' || field.type === 'select' || field.type === 'select-one' || field.type === 'checkbox'}
+                                                            disabled={['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string)}
                                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                                                 field.type === 'radio' || field.type === 'select' || field.type === 'select-one' || field.type === 'checkbox'
                                                                     ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'

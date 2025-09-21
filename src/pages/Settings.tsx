@@ -34,10 +34,8 @@ export default function Settings() {
             }
         };
 
-        // Adicionar listener
         browser.storage.onChanged.addListener(handleStorageChange);
 
-        // Cleanup
         return () => {
             browser.storage.onChanged.removeListener(handleStorageChange);
         };

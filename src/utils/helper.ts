@@ -54,15 +54,14 @@ export class Helper {
             return;
         }
 
-        if (type === "checkbox") {
-            el.checked = typeof value === "boolean" ? value : !!value;
-        } else if (type === "radio") {
-            if (el.value === String(value)) el.checked = true;
+        if (type === "checkbox" || type === "radio") {
+            el.checked = (value !== "false");
         } else {
             el.value = value ?? "";
-            el.dispatchEvent(new Event("input", { bubbles: true }));
-            el.dispatchEvent(new Event("change", { bubbles: true }));
         }
+
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     private setSelectSmart(select: any, rawValue: any) {

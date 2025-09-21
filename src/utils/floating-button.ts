@@ -1,9 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable func-style */
-// Botão flutuante para preenchimento de formulários
 import { Helper } from './helper';
 
-// Declarar chrome para TypeScript
 declare const chrome: {
     storage: {
         local: {
@@ -17,20 +16,19 @@ declare const chrome: {
 };
 
 let floatingButton: HTMLElement | null = null;
+let saveButton: HTMLElement | null = null;
+let fillButton: HTMLElement | null = null;
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
 let hasMoved = false;
 let startPosition = { x: 0, y: 0 };
 
-// Função para criar e mostrar toast
 function showToast(message: string, type: 'success' | 'error' = 'success') {
-    // Remover toast existente se houver
     const existingToast = document.getElementById('autofill-toast');
     if (existingToast) {
         existingToast.remove();
     }
 
-    // Criar toast
     const toast = document.createElement('div');
     toast.id = 'autofill-toast';
     toast.style.position = 'fixed';
@@ -51,7 +49,6 @@ function showToast(message: string, type: 'success' | 'error' = 'success') {
 
     toast.textContent = message;
 
-    // Adicionar ícone
     const icon = document.createElement('span');
     icon.style.marginRight = '8px';
     icon.style.fontSize = '16px';
@@ -60,12 +57,10 @@ function showToast(message: string, type: 'success' | 'error' = 'success') {
 
     document.body.appendChild(toast);
 
-    // Animar entrada
     setTimeout(() => {
         toast.style.transform = 'translateX(0)';
     }, 10);
 
-    // Remover após 3 segundos
     setTimeout(() => {
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => {
@@ -82,61 +77,130 @@ function createFloatingButton() {
         return;
     }
 
+    // Container principal
     floatingButton = document.createElement('div');
     floatingButton.id = 'autofill-floating-button';
     floatingButton.style.position = 'fixed';
-    floatingButton.style.width = '48px';
+    floatingButton.style.width = '70px';
     floatingButton.style.height = '48px';
-    floatingButton.style.backgroundColor = '#3b82f6';
-    floatingButton.style.borderRadius = '50%';
+    floatingButton.style.backgroundColor = '#1f2937';
+    floatingButton.style.borderRadius = '24px';
     floatingButton.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
     floatingButton.style.cursor = 'move';
     floatingButton.style.zIndex = '9999';
     floatingButton.style.display = 'flex';
     floatingButton.style.alignItems = 'center';
-    floatingButton.style.justifyContent = 'center';
+    floatingButton.style.justifyContent = 'space-between';
+    floatingButton.style.padding = '0 8px';
     floatingButton.style.right = '20px';
     floatingButton.style.bottom = '20px';
-    floatingButton.title = 'Clique para preencher formulário ou arraste para mover';
+    floatingButton.title = 'Arraste para mover';
 
-    // Ícone SVG
-    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    icon.setAttribute('width', '24');
-    icon.setAttribute('height', '24');
-    icon.setAttribute('fill', 'none');
-    icon.setAttribute('stroke', 'currentColor');
-    icon.setAttribute('viewBox', '0 0 24 24');
-    icon.style.color = 'white';
+    // Botão de salvar
+    saveButton = document.createElement('div');
+    saveButton.id = 'autofill-save-button';
+    saveButton.style.width = '32px';
+    saveButton.style.height = '32px';
+    saveButton.style.backgroundColor = '#10b981';
+    saveButton.style.borderRadius = '50%';
+    saveButton.style.display = 'flex';
+    saveButton.style.alignItems = 'center';
+    saveButton.style.justifyContent = 'center';
+    saveButton.style.cursor = 'pointer';
+    saveButton.style.transition = 'all 0.2s ease';
+    saveButton.title = 'Salvar formulário';
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    path.setAttribute('stroke-width', '2');
-    path.setAttribute('d', 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z');
+    // Ícone de salvar (download)
+    const saveIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    saveIcon.setAttribute('width', '16');
+    saveIcon.setAttribute('height', '16');
+    saveIcon.setAttribute('fill', 'none');
+    saveIcon.setAttribute('stroke', 'currentColor');
+    saveIcon.setAttribute('viewBox', '0 0 24 24');
+    saveIcon.style.color = 'white';
 
-    icon.appendChild(path);
-    floatingButton.appendChild(icon);
+    const savePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    savePath.setAttribute('stroke-linecap', 'round');
+    savePath.setAttribute('stroke-linejoin', 'round');
+    savePath.setAttribute('stroke-width', '2');
+    savePath.setAttribute('d', 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z');
+
+    saveIcon.appendChild(savePath);
+    saveButton.appendChild(saveIcon);
+
+    // Botão de preencher
+    fillButton = document.createElement('div');
+    fillButton.id = 'autofill-fill-button';
+    fillButton.style.width = '32px';
+    fillButton.style.height = '32px';
+    fillButton.style.backgroundColor = '#3b82f6';
+    fillButton.style.borderRadius = '50%';
+    fillButton.style.display = 'flex';
+    fillButton.style.alignItems = 'center';
+    fillButton.style.justifyContent = 'center';
+    fillButton.style.cursor = 'pointer';
+    fillButton.style.transition = 'all 0.2s ease';
+    fillButton.title = 'Preencher formulário';
+
+    // Ícone de preencher (edit)
+    const fillIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    fillIcon.setAttribute('width', '16');
+    fillIcon.setAttribute('height', '16');
+    fillIcon.setAttribute('fill', 'none');
+    fillIcon.setAttribute('stroke', 'currentColor');
+    fillIcon.setAttribute('viewBox', '0 0 24 24');
+    fillIcon.style.color = 'white';
+
+    const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    fillPath.setAttribute('stroke-linecap', 'round');
+    fillPath.setAttribute('stroke-linejoin', 'round');
+    fillPath.setAttribute('stroke-width', '2');
+    fillPath.setAttribute('d', 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z');
+
+    fillIcon.appendChild(fillPath);
+    fillButton.appendChild(fillIcon);
+
+    // Adicionar botões ao container
+    floatingButton.appendChild(saveButton);
+    floatingButton.appendChild(fillButton);
 
     // Event listeners
     floatingButton.addEventListener('mousedown', handleMouseDown);
-    floatingButton.addEventListener('click', handleClick);
+    saveButton.addEventListener('click', handleSaveClick);
+    saveButton.addEventListener('mouseenter', () => {
+        saveButton!.style.transform = 'scale(1.1)';
+        saveButton!.style.backgroundColor = '#059669';
+    });
+    saveButton.addEventListener('mouseleave', () => {
+        saveButton!.style.transform = 'scale(1)';
+        saveButton!.style.backgroundColor = '#10b981';
+    });
+    fillButton.addEventListener('click', handleFillClick);
+    fillButton.addEventListener('mouseenter', () => {
+        fillButton!.style.transform = 'scale(1.1)';
+        fillButton!.style.backgroundColor = '#2563eb';
+    });
+    fillButton.addEventListener('mouseleave', () => {
+        fillButton!.style.transform = 'scale(1)';
+        fillButton!.style.backgroundColor = '#3b82f6';
+    });
 
     document.body.appendChild(floatingButton);
 }
 
-// Função para remover o botão flutuante
 function removeFloatingButton() {
     if (floatingButton) {
         floatingButton.remove();
         floatingButton = null;
+        saveButton = null;
+        fillButton = null;
     }
 }
 
-// Função para atualizar a posição do botão
 function updateButtonPosition(x: number, y: number) {
     if (!floatingButton) return;
 
-    const maxX = window.innerWidth - 48;
+    const maxX = window.innerWidth - 100;
     const maxY = window.innerHeight - 48;
 
     const newX = Math.max(0, Math.min(x, maxX));
@@ -148,7 +212,6 @@ function updateButtonPosition(x: number, y: number) {
     floatingButton.style.bottom = 'auto';
 }
 
-// Event handlers
 function handleMouseDown(e: MouseEvent) {
     e.preventDefault();
     isDragging = true;
@@ -166,7 +229,6 @@ function handleMouseDown(e: MouseEvent) {
 function handleMouseMove(e: MouseEvent) {
     if (!isDragging || !floatingButton) return;
 
-    // Verificar se o mouse se moveu significativamente (mais de 5 pixels)
     const deltaX = Math.abs(e.clientX - startPosition.x);
     const deltaY = Math.abs(e.clientY - startPosition.y);
 
@@ -179,7 +241,6 @@ function handleMouseMove(e: MouseEvent) {
 
     updateButtonPosition(newX, newY);
 
-    // Salvar posição no storage
     chrome.storage.local.set({
         floatingButtonPosition: { x: newX, y: newY }
     });
@@ -187,7 +248,6 @@ function handleMouseMove(e: MouseEvent) {
 
 function handleMouseUp() {
     isDragging = false;
-    // Reset hasMoved após um pequeno delay para permitir que o clique seja processado
     setTimeout(() => {
         hasMoved = false;
     }, 100);
@@ -195,42 +255,67 @@ function handleMouseUp() {
     document.removeEventListener('mouseup', handleMouseUp);
 }
 
-async function handleClick(e: MouseEvent) {
-    // Se estava arrastando ou se moveu significativamente, não executar o clique
-    if (isDragging || hasMoved) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-    }
+// Função para salvar formulário
+async function handleSaveClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
 
     try {
-        // Verificar se há dados salvos para esta URL
+        // Capturar todos os campos do formulário
+        const inputs = Array.from(document.querySelectorAll("input, textarea, select")) as HTMLInputElement[];
+        const fields = Array.from(inputs)
+            .filter((input) => {
+                if ((!input.name && !input.id) || input.id === '') return false;
+                if (['hidden', 'submit', 'button', 'reset', 'file'].includes(input.type)) return false;
+                if (input.name.startsWith('_')) return false;
+                if (['token', 'method', 'uri', 'ip'].some((k) => input.name.toLowerCase().includes(k))) return false;
+                return true;
+            })
+            .map((field) => ({
+                name: field.name,
+                id: field.id,
+                value: field.type === 'checkbox' ? field.checked :
+                    field.type === 'radio' ? (field.checked ? field.value : '') :
+                        field.value,
+                type: field.type,
+            }));
+
+        if (fields.length === 0) {
+            showToast('Nenhum campo encontrado para salvar!', 'error');
+            return;
+        }
+
+        // Salvar no storage
+        await chrome.storage.local.set({
+            [window.location.href]: fields
+        });
+
+        showToast(`Formulário salvo! ${fields.length} campo(s) capturado(s).`, 'success');
+
+    } catch {
+        showToast('Erro ao salvar o formulário.', 'error');
+    }
+}
+
+async function handleFillClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
         const data = await chrome.storage.local.get(window.location.href);
         if (!data || !data[window.location.href]) {
             showToast('Nenhum formulário salvo para esta página!', 'error');
             return;
         }
 
-        // Usar a classe Helper para preencher os campos
         new Helper(false, window.location.href);
 
-        // Aguardar um pouco para o preenchimento acontecer
-        setTimeout(() => {
-            // Verificar quantos campos foram preenchidos
-            const fields = data[window.location.href];
-            if (Array.isArray(fields) && fields.length > 0) {
-                showToast(`Formulário preenchido! ${fields.length} campo(s) processado(s).`, 'success');
-            } else {
-                showToast('Nenhum campo compatível encontrado para preenchimento.', 'error');
-            }
-        }, 500);
-
+        showToast(`Formulário preenchido!`, 'success');
     } catch {
         showToast('Erro ao preencher o formulário.', 'error');
     }
 }
 
-// Função para verificar se o botão deve ser mostrado
 async function checkFloatingButtonStatus() {
     try {
         const data = await chrome.storage.local.get(['floatingButton', 'floatingButtonPosition']);
@@ -238,9 +323,8 @@ async function checkFloatingButtonStatus() {
         if (data.floatingButton) {
             createFloatingButton();
 
-            // Definir posição inicial (canto inferior direito)
             const position = (data.floatingButtonPosition as { x: number; y: number }) || {
-                x: window.innerWidth - 68,
+                x: window.innerWidth - 120,
                 y: window.innerHeight - 68
             };
             updateButtonPosition(position.x, position.y);
@@ -248,7 +332,7 @@ async function checkFloatingButtonStatus() {
             removeFloatingButton();
         }
     } catch {
-        // Silenciar erro para não poluir o console
+        // Silenciar erro
     }
 }
 
@@ -260,7 +344,7 @@ chrome.storage.onChanged.addListener((changes: Record<string, unknown>, namespac
             createFloatingButton();
             const positionChange = changes.floatingButtonPosition as { newValue: { x: number; y: number } } | undefined;
             const position = positionChange?.newValue || {
-                x: window.innerWidth - 68,
+                x: window.innerWidth - 120,
                 y: window.innerHeight - 68
             };
             updateButtonPosition(position.x, position.y);
@@ -270,5 +354,4 @@ chrome.storage.onChanged.addListener((changes: Record<string, unknown>, namespac
     }
 });
 
-// Inicializar quando o script carregar
 checkFloatingButtonStatus();

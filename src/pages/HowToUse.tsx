@@ -53,12 +53,9 @@ export default function HowToUse() {
                             </div>
                             <div className="bg-purple-50 border-l-4 border-purple-400 p-4 mb-4">
                                 <p className="text-purple-800">
-                                    <strong>Uso:</strong> Uma bolinha azul aparecerá na tela que você pode arrastar para qualquer posição
-                                </p>
-                            </div>
-                            <div className="bg-purple-50 border-l-4 border-purple-400 p-4">
-                                <p className="text-purple-800">
-                                    <strong>Preenchimento:</strong> Clique na bolinha para preencher automaticamente os campos da página atual
+                                    <strong>Uso:</strong> O botão flutuante possui duas funcionalidades: uma bolinha
+                                    azul para preencher automaticamente o formulário e uma bolinha verde para salvar os
+                                    dados. Ambos os botões podem ser arrastados para qualquer posição na tela.
                                 </p>
                             </div>
                         </section>
@@ -80,17 +77,6 @@ export default function HowToUse() {
                                     <strong>Excluir:</strong> Clique em "Excluir" para remover um formulário salvo
                                 </p>
                             </div>
-                        </section>
-
-                        <section>
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-4">5. Dicas Importantes</h2>
-                            <ul className="list-disc list-inside space-y-2 text-gray-700">
-                                <li>Certifique-se de que os campos do formulário tenham atributos <code className="bg-gray-100 px-1 rounded">name</code> ou <code className="bg-gray-100 px-1 rounded">id</code></li>
-                                <li>Campos do tipo radio, checkbox e select não são suportados para edição</li>
-                                <li>O botão flutuante só funciona em páginas onde há formulários salvos</li>
-                                <li>Você pode arrastar o botão flutuante para qualquer posição da tela</li>
-                                <li>Os dados são salvos localmente no seu navegador</li>
-                            </ul>
                         </section>
                     </div>
                 </div>
