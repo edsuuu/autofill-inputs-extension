@@ -30,7 +30,7 @@ export default function Options() {
             const forms: SavedForm[] = [];
 
             Object.keys(data).forEach((key) => {
-                if (!['enabled', 'floatingButton'].includes(key) && data[key]) {
+                if (!['enabled', 'floatingButton', 'floatingButtonPosition'].includes(key) && data[key]) {
                     forms.push({
                         url: key,
                         fields: data[key],
@@ -135,13 +135,13 @@ export default function Options() {
                                                 {editingFields.map((field, index) => (
                                                     <div key={index} className="space-y-2">
                                                         <label
-                                                            className={`block text-sm font-medium ${
+                                                            className={`flex text-sm font-medium flex-col ${
                                                                 ['radio', 'radio', 'select-one'].includes(field.type as string) ? 'text-gray-400' : 'text-gray-700'
                                                             }`}
                                                         >
-                                                            {field.name || field.id || `Campo ${index + 1}`}
+                                                            <span className="truncate">{field.name || field.id || `Campo ${index + 1}`}</span>
                                                             {['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string) && (
-                                                                <span className="ml-2 text-xs text-gray-400">(Desabilitado)</span>
+                                                                <span className="text-xs text-gray-400">(Desabilitado)</span>
                                                             )}
                                                         </label>
                                                         <input

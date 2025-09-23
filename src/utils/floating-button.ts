@@ -81,7 +81,9 @@ function createFloatingButton() {
     floatingButton = document.createElement('div');
     floatingButton.id = 'autofill-floating-button';
     floatingButton.style.position = 'fixed';
-    floatingButton.style.width = '70px';
+    floatingButton.style.width = '90px';
+    floatingButton.style.boxSizing = 'content-box';
+    floatingButton.style.flexShrink = '0';
     floatingButton.style.height = '48px';
     floatingButton.style.backgroundColor = '#1f2937';
     floatingButton.style.borderRadius = '24px';
