@@ -1,5 +1,8 @@
+/* eslint-disable import/no-unresolved */
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
+import Modal from '../components/Modal';
+import { Helper, type UrlPattern } from '../utils/helper';
 
 interface FormField {
     name?: string;
@@ -18,10 +21,26 @@ export default function Options() {
     const [savedForms, setSavedForms] = useState<SavedForm[]>([]);
     const [editingForm, setEditingForm] = useState<string | null>(null);
     const [editingFields, setEditingFields] = useState<FormField[]>([]);
+    const [urlPatterns, setUrlPatterns] = useState<UrlPattern[]>([]);
+    const [newPattern, setNewPattern] = useState<string>('');
+    const [showPatternForm, setShowPatternForm] = useState<boolean>(false);
+    const [modal, setModal] = useState<{
+        isOpen: boolean;
+        type: 'info' | 'success' | 'warning' | 'error' | 'confirm';
+        title: string;
+        message: string;
+        onConfirm?: () => void;
+            }>({
+                isOpen: false,
+                type: 'info',
+                title: '',
+                message: '',
+            });
 
     useEffect(() => {
         (async function () {
             await loadSavedForms();
+            await loadUrlPatterns();
         })();
     }, []);
 
@@ -31,7 +50,7 @@ export default function Options() {
             const forms: SavedForm[] = [];
 
             Object.keys(data).forEach((key) => {
-                if (!['enabled', 'floatingButton', 'floatingButtonPosition'].includes(key) && data[key]) {
+                if (!['enabled', 'floatingButton', 'floatingButtonPosition', '__url_patterns__'].includes(key) && data[key]) {
                     forms.push({
                         url: key,
                         fields: data[key],
@@ -41,7 +60,12 @@ export default function Options() {
 
             setSavedForms(forms);
         } catch {
-            alert('Erro ao carregar formulários salvos!');
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao carregar formulários salvos!',
+            });
         }
     };
 
@@ -50,7 +74,12 @@ export default function Options() {
             await browser.storage.local.remove(url);
             setSavedForms((prev) => prev.filter((form) => form.url !== url));
         } catch {
-            alert('Erro ao excluir formulário!');
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao excluir formulário!',
+            });
         }
     };
 
@@ -73,7 +102,12 @@ export default function Options() {
             setEditingForm(null);
             setEditingFields([]);
         } catch {
-            alert('Erro ao salvar alterações!');
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao salvar alterações!',
+            });
         }
     };
 
@@ -87,6 +121,185 @@ export default function Options() {
 
     const openUrl = (url: string) => {
         window.open(url, '_blank');
+    };
+
+    const loadUrlPatterns = async () => {
+        try {
+            const patterns = await Helper.getAllUrlPatterns();
+            setUrlPatterns(patterns);
+        } catch {
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao carregar padrões de URL!',
+            });
+        }
+    };
+
+    const createPatternFromForm = async (url: string) => {
+        try {
+            const form = savedForms.find(f => f.url === url);
+            if (!form) {
+                setModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Erro',
+                    message: 'Formulário não encontrado!',
+                });
+                return;
+            }
+
+            const pattern = newPattern.trim();
+            if (!pattern) {
+                setModal({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Atenção',
+                    message: 'Digite um padrão de URL válido!',
+                });
+                return;
+            }
+
+            await Helper.saveUrlPattern(pattern, form.fields, true);
+            setNewPattern('');
+            setShowPatternForm(false);
+            await loadUrlPatterns();
+            setModal({
+                isOpen: true,
+                type: 'success',
+                title: 'Sucesso',
+                message: 'Padrão de URL criado com sucesso!',
+            });
+        } catch {
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao criar padrão de URL!',
+            });
+        }
+    };
+
+    const deletePattern = async (pattern: string) => {
+        setModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Confirmar exclusão',
+            message: 'Tem certeza que deseja excluir este padrão?',
+            onConfirm: async () => {
+                try {
+                    await Helper.deleteUrlPattern(pattern);
+                    await loadUrlPatterns();
+                    setModal({
+                        isOpen: true,
+                        type: 'success',
+                        title: 'Sucesso',
+                        message: 'Padrão excluído com sucesso!',
+                    });
+                } catch {
+                    setModal({
+                        isOpen: true,
+                        type: 'error',
+                        title: 'Erro',
+                        message: 'Erro ao excluir padrão!',
+                    });
+                }
+            },
+        });
+    };
+
+    const togglePattern = async (pattern: string, enabled: boolean) => {
+        try {
+            await Helper.toggleUrlPattern(pattern, enabled);
+            await loadUrlPatterns();
+        } catch {
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao alterar status do padrão!',
+            });
+        }
+    };
+
+    // Função para sugerir padrão automaticamente baseado na URL
+    const suggestPatternFromUrl = (url: string): string => {
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/');
+
+            // Encontrar a última parte do caminho que parece ser um ID (número longo)
+            const lastPart = pathParts[pathParts.length - 1];
+
+            // Se a última parte é um número longo (provavelmente um ID), substituir por *
+            if (/^\d+$/.test(lastPart) && lastPart.length > 5) {
+                pathParts[pathParts.length - 1] = '*';
+                return `${urlObj.protocol}//${urlObj.host}${pathParts.join('/')}`;
+            }
+
+            // Se não encontrar padrão claro, apenas substituir a última parte por *
+            pathParts[pathParts.length - 1] = '*';
+            return `${urlObj.protocol}//${urlObj.host}${pathParts.join('/')}`;
+        } catch {
+            // Se não conseguir parsear, tentar substituir a última parte após a última /
+            const lastSlashIndex = url.lastIndexOf('/');
+            if (lastSlashIndex > 0) {
+                return url.substring(0, lastSlashIndex + 1) + '*';
+            }
+            return url + '/*';
+        }
+    };
+
+    // Função para converter URL em padrão automaticamente
+    const convertToPattern = async (url: string) => {
+        try {
+            const form = savedForms.find(f => f.url === url);
+            if (!form) {
+                setModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Erro',
+                    message: 'Formulário não encontrado!',
+                });
+                return;
+            }
+
+            const suggestedPattern = suggestPatternFromUrl(url);
+
+            setModal({
+                isOpen: true,
+                type: 'confirm',
+                title: 'Criar padrão de URL',
+                message: `Criar padrão "${suggestedPattern}" a partir deste formulário?\n\nEste padrão funcionará para todas as URLs que seguem esse formato.`,
+                onConfirm: async () => {
+                    try {
+                        await Helper.saveUrlPattern(suggestedPattern, form.fields, true);
+                        await loadUrlPatterns();
+                        setModal({
+                            isOpen: true,
+                            type: 'success',
+                            title: 'Sucesso',
+                            message: 'Padrão criado com sucesso! Agora o formulário funcionará para URLs similares.',
+                        });
+                    } catch {
+                        setModal({
+                            isOpen: true,
+                            type: 'error',
+                            title: 'Erro',
+                            message: 'Erro ao criar padrão!',
+                        });
+                    }
+                },
+            });
+        } catch {
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Erro',
+                message: 'Erro ao criar padrão!',
+            });
+        }
     };
 
     return (
@@ -201,6 +414,13 @@ export default function Options() {
                                                         Editar
                                                     </button>
                                                     <button
+                                                        onClick={() => convertToPattern(form.url)}
+                                                        className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors cursor-pointer"
+                                                        title="Converter em padrão para funcionar em URLs similares"
+                                                    >
+                                                        Converter em Padrão
+                                                    </button>
+                                                    <button
                                                         onClick={() => deleteForm(form.url)}
                                                         className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors cursor-pointer"
                                                     >
@@ -239,7 +459,118 @@ export default function Options() {
                         </div>
                     )}
                 </div>
+
+                {/* Seção de Padrões de URL */}
+                <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Padrões de URL</h2>
+                            <p className="text-sm text-gray-600 mt-1">Use padrões com * para aplicar formulários em múltiplas URLs</p>
+                        </div>
+                        <button
+                            onClick={() => setShowPatternForm(!showPatternForm)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                        >
+                            {showPatternForm ? 'Cancelar' : 'Novo Padrão'}
+                        </button>
+                    </div>
+
+                    {showPatternForm && savedForms.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Criar padrão a partir de um formulário salvo</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Padrão de URL (use * para wildcard)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newPattern}
+                                        onChange={(e) => setNewPattern(e.target.value)}
+                                        placeholder="https://meusite.com/pedido/*"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Exemplo: https://meusite.com/pedido/* corresponderá a todas as URLs que começam com esse padrão
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Formulário base
+                                    </label>
+                                    <select
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                createPatternFromForm(e.target.value);
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Selecione um formulário...</option>
+                                        {savedForms.map((form) => (
+                                            <option key={form.url} value={form.url}>
+                                                {form.url} ({form.fields.length} campos)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {urlPatterns.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">Nenhum padrão de URL cadastrado</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {urlPatterns.map((pattern) => (
+                                <div key={pattern.pattern} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{pattern.pattern}</code>
+                                                <span className={`text-xs px-2 py-1 rounded ${pattern.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {pattern.enabled ? 'Ativado' : 'Desativado'}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">{pattern.fields.length} campo(s)</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <label className="flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={pattern.enabled}
+                                                    onChange={(e) => togglePattern(pattern.pattern, e.target.checked)}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Ativar</span>
+                                            </label>
+                                            <button
+                                                onClick={() => deletePattern(pattern.pattern)}
+                                                className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors cursor-pointer"
+                                            >
+                                                Excluir
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
+
+            <Modal
+                isOpen={modal.isOpen}
+                onClose={() => setModal({ ...modal, isOpen: false })}
+                title={modal.title}
+                message={modal.message}
+                type={modal.type}
+                onConfirm={modal.onConfirm}
+                confirmText="Confirmar"
+                cancelText="Cancelar"
+            />
         </div>
     );
 }

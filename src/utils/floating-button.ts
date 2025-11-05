@@ -239,8 +239,8 @@ async function handleFillClick(e: MouseEvent) {
     e.stopPropagation();
 
     try {
-        const data = await chrome.storage.local.get(window.location.href);
-        if (!data || !data[window.location.href]) {
+        const fields = await Helper.getFieldsForUrl(window.location.href);
+        if (!fields || fields.length === 0) {
             showToast('Nenhum formulário salvo para esta página!', 'error');
             return;
         }

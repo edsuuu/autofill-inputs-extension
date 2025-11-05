@@ -9,6 +9,12 @@ export interface FormField {
     useUuid?: boolean;
 }
 
+export interface UrlPattern {
+    pattern: string; // Ex: https://meusite.com/pedido/*
+    enabled: boolean;
+    fields: FormField[];
+}
+
 export class Helper {
     constructor(automatic: boolean, windowLocationHref: string) {
         this.autoFill(windowLocationHref, automatic);
@@ -147,6 +153,141 @@ export class Helper {
         });
     }
 
+    // Função para verificar se uma URL corresponde a um padrão
+    public static urlMatchesPattern(url: string, pattern: string): boolean {
+        try {
+            // Se for uma URL exata (sem wildcards), compara diretamente
+            if (!pattern.includes('*')) {
+                return url === pattern;
+            }
+
+            // Converter padrão com * para regex de forma mais simples
+            // Dividir o padrão em partes separadas por *
+            const parts = pattern.split('*');
+            
+            // Escapar cada parte e juntar com .*?
+            const escapedParts = parts.map(part => {
+                // Escapar caracteres especiais do regex
+                return part.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+            });
+            
+            // Juntar com .*? (qualquer caractere, não-guloso)
+            const regexPattern = escapedParts.join('.*?');
+            
+            const regex = new RegExp(`^${regexPattern}$`);
+            const matches = regex.test(url);
+            
+            return matches;
+        } catch (error) {
+            console.error('Erro ao verificar padrão:', error, { url, pattern });
+            return false;
+        }
+    }
+
+    // Função para buscar padrões de URL que correspondem à URL atual
+    public static async findMatchingPatterns(url: string): Promise<UrlPattern[]> {
+        try {
+            const allData = await browser.storage.local.get(null);
+            const matchingPatterns: UrlPattern[] = [];
+
+            // Chave especial para armazenar padrões
+            const patternsKey = '__url_patterns__';
+            const patternsData = allData[patternsKey] as Record<string, UrlPattern> | undefined;
+
+            if (patternsData) {
+                Object.values(patternsData).forEach((pattern) => {
+                    if (pattern.enabled && Helper.urlMatchesPattern(url, pattern.pattern)) {
+                        matchingPatterns.push(pattern);
+                    }
+                });
+            }
+
+            return matchingPatterns;
+        } catch {
+            return [];
+        }
+    }
+
+    // Função para buscar campos de uma URL (exata ou por padrão)
+    public static async getFieldsForUrl(url: string): Promise<FormField[]> {
+        try {
+            // Primeiro, tentar buscar URL exata
+            const exactData = await browser.storage.local.get(url);
+            if (exactData[url] && Array.isArray(exactData[url]) && (exactData[url] as FormField[]).length > 0) {
+                return exactData[url] as FormField[];
+            }
+
+            // Se não encontrar, buscar por padrões
+            const matchingPatterns = await Helper.findMatchingPatterns(url);
+            if (matchingPatterns.length > 0) {
+                // Retornar campos do primeiro padrão correspondente
+                const fields = matchingPatterns[0].fields;
+                if (fields && Array.isArray(fields) && fields.length > 0) {
+                    return fields;
+                }
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Erro ao buscar campos:', error);
+            return [];
+        }
+    }
+
+    // Função para salvar ou atualizar um padrão de URL
+    public static async saveUrlPattern(pattern: string, fields: FormField[], enabled: boolean = true): Promise<void> {
+        const patternsKey = '__url_patterns__';
+        const existingData = await browser.storage.local.get(patternsKey);
+        const patternsData = (existingData[patternsKey] || {}) as Record<string, UrlPattern>;
+
+        patternsData[pattern] = {
+            pattern,
+            enabled,
+            fields,
+        };
+
+        await browser.storage.local.set({ [patternsKey]: patternsData });
+    }
+
+    // Função para obter todos os padrões salvos
+    public static async getAllUrlPatterns(): Promise<UrlPattern[]> {
+        try {
+            const patternsKey = '__url_patterns__';
+            const data = await browser.storage.local.get(patternsKey);
+            const patternsData = data[patternsKey] as Record<string, UrlPattern> | undefined;
+
+            if (!patternsData) {
+                return [];
+            }
+
+            return Object.values(patternsData);
+        } catch {
+            return [];
+        }
+    }
+
+    // Função para deletar um padrão de URL
+    public static async deleteUrlPattern(pattern: string): Promise<void> {
+        const patternsKey = '__url_patterns__';
+        const existingData = await browser.storage.local.get(patternsKey);
+        const patternsData = (existingData[patternsKey] || {}) as Record<string, UrlPattern>;
+
+        delete patternsData[pattern];
+        await browser.storage.local.set({ [patternsKey]: patternsData });
+    }
+
+    // Função para alternar o status de um padrão
+    public static async toggleUrlPattern(pattern: string, enabled: boolean): Promise<void> {
+        const patternsKey = '__url_patterns__';
+        const existingData = await browser.storage.local.get(patternsKey);
+        const patternsData = (existingData[patternsKey] || {}) as Record<string, UrlPattern>;
+
+        if (patternsData[pattern]) {
+            patternsData[pattern].enabled = enabled;
+            await browser.storage.local.set({ [patternsKey]: patternsData });
+        }
+    }
+
     public async autoFill(windowLocationHref: string, automatic: boolean = false) {
         if (automatic) {
             const { enabled } = await browser.storage.local.get("enabled");
@@ -156,33 +297,48 @@ export class Helper {
             }
         }
 
-        browser.storage.local.get(windowLocationHref).then((data) => {
-            const value = data[windowLocationHref] || [];
+        // Buscar campos por URL exata ou padrão
+        const fields = await Helper.getFieldsForUrl(windowLocationHref);
 
-            value.forEach((campo: FormField) => {
-                let selector = "";
-                if (campo.name) selector += `[name="${campo.name}"]`;
-                if (campo.id) {
-                    const safeId = CSS.escape(campo.id);
-                    selector += (selector ? ", " : "") + `#${safeId}`;
+        if (!fields || fields.length === 0) {
+            return;
+        }
+
+        // Aguardar um pouco para garantir que os campos estão no DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        fields.forEach((campo: FormField) => {
+            let selector = "";
+            if (campo.name) selector += `[name="${campo.name}"]`;
+            if (campo.id) {
+                const safeId = CSS.escape(campo.id);
+                selector += (selector ? ", " : "") + `#${safeId}`;
+            }
+
+            if (!selector) return;
+
+            const el = document.querySelectorAll(selector) as NodeListOf<HTMLInputElement>;
+            if (!el || el.length === 0) return;
+
+            el.forEach((input) => {
+                // Verificar se o tipo do campo corresponde
+                if (campo.type && input.type !== campo.type && campo.type !== 'text') {
+                    // Para checkboxes e radios, verificar tipo
+                    if ((campo.type === 'checkbox' || campo.type === 'radio') && input.type !== campo.type) {
+                        return;
+                    }
                 }
 
-                const el = document.querySelectorAll(selector) as NodeListOf<HTMLInputElement>;
-                if (!el || el.length === 0) return;
-
-                el.forEach((input) => {
-                    // Se o campo tem useUuid habilitado, gerar UUID
-                    let valueToSet = campo.value;
-                    if (campo.useUuid) {
-                        valueToSet = Helper.generateUuid();
-                    } else {
-                        valueToSet = (campo.value ?? "").toString().trim();
-                    }
-                    this.setElementValue(input, valueToSet);
-                });
+                // Se o campo tem useUuid habilitado, gerar UUID
+                let valueToSet = campo.value;
+                if (campo.useUuid) {
+                    valueToSet = Helper.generateUuid();
+                } else {
+                    valueToSet = (campo.value ?? "").toString().trim();
+                }
+                this.setElementValue(input, valueToSet);
             });
         });
-
     }
 
     private normalize(value: string): string {
