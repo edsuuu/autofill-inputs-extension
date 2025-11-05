@@ -81,19 +81,18 @@ function createFloatingButton() {
     floatingButton = document.createElement('div');
     floatingButton.id = 'autofill-floating-button';
     floatingButton.style.position = 'fixed';
-    floatingButton.style.width = '90px';
     floatingButton.style.boxSizing = 'content-box';
     floatingButton.style.flexShrink = '0';
-    floatingButton.style.height = '48px';
     floatingButton.style.backgroundColor = '#1f2937';
-    floatingButton.style.borderRadius = '24px';
+    floatingButton.style.borderRadius = '12px';
     floatingButton.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
     floatingButton.style.cursor = 'move';
     floatingButton.style.zIndex = '9999';
     floatingButton.style.display = 'flex';
     floatingButton.style.alignItems = 'center';
     floatingButton.style.justifyContent = 'space-between';
-    floatingButton.style.padding = '0 8px';
+    floatingButton.style.padding = '8px';
+    floatingButton.style.gap = '8px';
     floatingButton.style.right = '20px';
     floatingButton.style.bottom = '20px';
     floatingButton.title = 'Arraste para mover';
@@ -101,66 +100,38 @@ function createFloatingButton() {
     // Botão de salvar
     saveButton = document.createElement('div');
     saveButton.id = 'autofill-save-button';
-    saveButton.style.width = '32px';
-    saveButton.style.height = '32px';
+    saveButton.style.padding = '8px 16px';
     saveButton.style.backgroundColor = '#10b981';
-    saveButton.style.borderRadius = '50%';
+    saveButton.style.borderRadius = '8px';
     saveButton.style.display = 'flex';
     saveButton.style.alignItems = 'center';
     saveButton.style.justifyContent = 'center';
     saveButton.style.cursor = 'pointer';
     saveButton.style.transition = 'all 0.2s ease';
+    saveButton.style.color = 'white';
+    saveButton.style.fontSize = '14px';
+    saveButton.style.fontWeight = '500';
+    saveButton.style.whiteSpace = 'nowrap';
     saveButton.title = 'Salvar formulário';
-
-    // Ícone de salvar (download)
-    const saveIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    saveIcon.setAttribute('width', '16');
-    saveIcon.setAttribute('height', '16');
-    saveIcon.setAttribute('fill', 'none');
-    saveIcon.setAttribute('stroke', 'currentColor');
-    saveIcon.setAttribute('viewBox', '0 0 24 24');
-    saveIcon.style.color = 'white';
-
-    const savePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    savePath.setAttribute('stroke-linecap', 'round');
-    savePath.setAttribute('stroke-linejoin', 'round');
-    savePath.setAttribute('stroke-width', '2');
-    savePath.setAttribute('d', 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z');
-
-    saveIcon.appendChild(savePath);
-    saveButton.appendChild(saveIcon);
+    saveButton.textContent = 'Salvar';
 
     // Botão de preencher
     fillButton = document.createElement('div');
     fillButton.id = 'autofill-fill-button';
-    fillButton.style.width = '32px';
-    fillButton.style.height = '32px';
+    fillButton.style.padding = '8px 16px';
     fillButton.style.backgroundColor = '#3b82f6';
-    fillButton.style.borderRadius = '50%';
+    fillButton.style.borderRadius = '8px';
     fillButton.style.display = 'flex';
     fillButton.style.alignItems = 'center';
     fillButton.style.justifyContent = 'center';
     fillButton.style.cursor = 'pointer';
     fillButton.style.transition = 'all 0.2s ease';
+    fillButton.style.color = 'white';
+    fillButton.style.fontSize = '14px';
+    fillButton.style.fontWeight = '500';
+    fillButton.style.whiteSpace = 'nowrap';
     fillButton.title = 'Preencher formulário';
-
-    // Ícone de preencher (edit)
-    const fillIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    fillIcon.setAttribute('width', '16');
-    fillIcon.setAttribute('height', '16');
-    fillIcon.setAttribute('fill', 'none');
-    fillIcon.setAttribute('stroke', 'currentColor');
-    fillIcon.setAttribute('viewBox', '0 0 24 24');
-    fillIcon.style.color = 'white';
-
-    const fillPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    fillPath.setAttribute('stroke-linecap', 'round');
-    fillPath.setAttribute('stroke-linejoin', 'round');
-    fillPath.setAttribute('stroke-width', '2');
-    fillPath.setAttribute('d', 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z');
-
-    fillIcon.appendChild(fillPath);
-    fillButton.appendChild(fillIcon);
+    fillButton.textContent = 'Preencher';
 
     // Adicionar botões ao container
     floatingButton.appendChild(saveButton);
@@ -170,20 +141,16 @@ function createFloatingButton() {
     floatingButton.addEventListener('mousedown', handleMouseDown);
     saveButton.addEventListener('click', handleSaveClick);
     saveButton.addEventListener('mouseenter', () => {
-        saveButton!.style.transform = 'scale(1.1)';
         saveButton!.style.backgroundColor = '#059669';
     });
     saveButton.addEventListener('mouseleave', () => {
-        saveButton!.style.transform = 'scale(1)';
         saveButton!.style.backgroundColor = '#10b981';
     });
     fillButton.addEventListener('click', handleFillClick);
     fillButton.addEventListener('mouseenter', () => {
-        fillButton!.style.transform = 'scale(1.1)';
         fillButton!.style.backgroundColor = '#2563eb';
     });
     fillButton.addEventListener('mouseleave', () => {
-        fillButton!.style.transform = 'scale(1)';
         fillButton!.style.backgroundColor = '#3b82f6';
     });
 
@@ -202,8 +169,8 @@ function removeFloatingButton() {
 function updateButtonPosition(x: number, y: number) {
     if (!floatingButton) return;
 
-    const maxX = window.innerWidth - 100;
-    const maxY = window.innerHeight - 48;
+    const maxX = window.innerWidth - 200;
+    const maxY = window.innerHeight - 60;
 
     const newX = Math.max(0, Math.min(x, maxX));
     const newY = Math.max(0, Math.min(y, maxY));
@@ -262,41 +229,9 @@ async function handleSaveClick(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
 
-    try {
-        // Capturar todos os campos do formulário
-        const inputs = Array.from(document.querySelectorAll("input, textarea, select")) as HTMLInputElement[];
-        const fields = Array.from(inputs)
-            .filter((input) => {
-                if ((!input.name && !input.id) || input.id === '') return false;
-                if (['hidden', 'submit', 'button', 'reset', 'file'].includes(input.type)) return false;
-                if (input.name.startsWith('_')) return false;
-                if (['token', 'method', 'uri', 'ip'].some((k) => input.name.toLowerCase().includes(k))) return false;
-                return true;
-            })
-            .map((field) => ({
-                name: field.name,
-                id: field.id,
-                value: field.type === 'checkbox' ? field.checked :
-                    field.type === 'radio' ? (field.checked ? field.value : '') :
-                        field.value,
-                type: field.type,
-            }));
-
-        if (fields.length === 0) {
-            showToast('Nenhum campo encontrado para salvar!', 'error');
-            return;
-        }
-
-        // Salvar no storage
-        await chrome.storage.local.set({
-            [window.location.href]: fields
-        });
-
-        showToast(`Formulário salvo! ${fields.length} campo(s) capturado(s).`, 'success');
-
-    } catch {
-        showToast('Erro ao salvar o formulário.', 'error');
-    }
+    const helper = new Helper(false, window.location.href);
+    const result = await helper.saveForm(window.location.href);
+    showToast(result.message, result.success ? 'success' : 'error');
 }
 
 async function handleFillClick(e: MouseEvent) {

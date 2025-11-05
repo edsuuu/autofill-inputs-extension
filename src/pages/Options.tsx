@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
 
 interface FormField {
-    name: string;
-    id: string;
-    value: string;
+    name?: string;
+    id?: string;
+    value?: string | boolean;
     type?: string;
+    useUuid?: boolean;
 }
 
 interface SavedForm {
@@ -80,6 +81,10 @@ export default function Options() {
         setEditingFields((prev) => prev.map((field, i) => (i === index ? { ...field, value } : field)));
     };
 
+    const toggleUuid = (index: number) => {
+        setEditingFields((prev) => prev.map((field, i) => (i === index ? { ...field, useUuid: !field.useUuid } : field)));
+    };
+
     const openUrl = (url: string) => {
         window.open(url, '_blank');
     };
@@ -133,28 +138,44 @@ export default function Options() {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {editingFields.map((field, index) => (
-                                                    <div key={index} className="space-y-2">
-                                                        <label
-                                                            className={`flex text-sm font-medium flex-col ${
-                                                                ['radio', 'radio', 'select-one'].includes(field.type as string) ? 'text-gray-400' : 'text-gray-700'
-                                                            }`}
-                                                        >
-                                                            <span className="truncate">{field.name || field.id || `Campo ${index + 1}`}</span>
-                                                            {['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string) && (
-                                                                <span className="text-xs text-gray-400">(Desabilitado)</span>
+                                                    <div key={index} className="space-y-2 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <label
+                                                                className={`flex-1 text-sm font-medium flex-col min-w-0 ${
+                                                                    ['radio', 'radio', 'select-one'].includes(field.type as string) ? 'text-gray-400' : 'text-gray-700'
+                                                                }`}
+                                                            >
+                                                                <span className="break-words">{field.name || field.id || `Campo ${index + 1}`}</span>
+                                                                {['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string) && (
+                                                                    <span className="text-xs text-gray-400">(Desabilitado)</span>
+                                                                )}
+                                                            </label>
+                                                            {field.type !== 'checkbox' && field.type !== 'radio' && (
+                                                                <label className="flex items-center gap-1 cursor-pointer flex-shrink-0">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={field.useUuid || false}
+                                                                        onChange={() => toggleUuid(index)}
+                                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                    />
+                                                                    <span className="text-xs text-gray-600 whitespace-nowrap">UUID</span>
+                                                                </label>
                                                             )}
-                                                        </label>
+                                                        </div>
                                                         <input
                                                             type="text"
-                                                            value={field.value}
+                                                            value={field.useUuid ? 'Gerado automaticamente' : (field.value as string) || ''}
                                                             onChange={(e) => updateFieldValue(index, e.target.value)}
-                                                            disabled={['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string)}
-                                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                                                field.type === 'radio' || field.type === 'select' || field.type === 'select-one' || field.type === 'checkbox'
+                                                            disabled={['radio', 'radio', 'select-one', 'checkbox'].includes(field.type as string) || field.useUuid}
+                                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent overflow-hidden text-ellipsis ${
+                                                                field.type === 'radio' || field.type === 'select' || field.type === 'select-one' || field.type === 'checkbox' || field.useUuid
                                                                     ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
                                                                     : 'border-gray-300'
                                                             }`}
                                                         />
+                                                        {field.useUuid && (
+                                                            <p className="text-xs text-blue-600 break-words">Um UUID será gerado a cada preenchimento</p>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -191,8 +212,18 @@ export default function Options() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                                 {Array.isArray(form.fields) && form.fields.slice(0, 6).map((field, index) => (
                                                     <div key={index} className="bg-gray-50 rounded-md p-3">
-                                                        <div className="text-xs font-medium text-gray-500 mb-1">{field.name || field.id || `Campo ${index + 1}`}</div>
-                                                        <div className="text-sm text-gray-900 truncate">{field.value || <span className="text-gray-400 italic">Vazio</span>}</div>
+                                                        <div className="text-xs font-medium text-gray-500 mb-1">
+                                                            {field.name || field.id || `Campo ${index + 1}`}
+                                                            {field.useUuid && <span className="ml-1 text-blue-600">(UUID)</span>}
+                                                        </div>
+                                                        <div className="text-sm text-gray-900 truncate">
+                                                            {field.useUuid
+                                                                ? 'Gerado automaticamente'
+                                                                : typeof field.value === 'boolean'
+                                                                    ? (field.value ? 'Sim' : 'Não')
+                                                                    : (field.value || <span className="text-gray-400 italic">Vazio</span>)
+                                                            }
+                                                        </div>
                                                     </div>
                                                 ))}
                                                 {Array.isArray(form.fields) && form.fields.length > 6 && (

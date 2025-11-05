@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
+// eslint-disable-next-line import/no-unresolved
+import { Helper, type FormField } from '../utils/helper';
 
 type NotificationType = 'success' | 'error';
 
@@ -38,52 +40,59 @@ export default function Popup() {
     };
 
     const getInputs = async () => {
-        const [tab] = await browser.tabs.query({
-            active: true,
-            currentWindow: true,
-        });
-
-        const [{ result }] = await browser.scripting.executeScript({
-            target: { tabId: Number(tab.id) },
-
-            func: () => {
-                const inputs = Array.from(document.querySelectorAll("input, textarea, select")) as HTMLInputElement[];
-
-                return Array.from(inputs)
-                    .filter((input) => {
-                        if ((!input.name && !input.id) || input.id === '') return false;
-                        if (['hidden', 'submit', 'button', 'reset', 'file'].includes(input.type)) return false;
-                        if (input.name.startsWith('_')) return false;
-                        if (['token', 'method', 'uri', 'ip'].some((k) => input.name.toLowerCase().includes(k))) return false;
-                        return true;
-                    })
-                    .map((field) => {
-                        let value: string | boolean;
-
-                        if (field.type === 'checkbox' || field.type === 'radio') {
-                            value = field.checked;
-                        } else {
-                            value = field.value;
-                        }
-
-                        return {
-                            name: field.name,
-                            id: field.id,
-                            value: value,
-                            type: field.type,
-                        };
-                    });
-            },
-        });
-
-        browser.storage.local
-            .set({ [String(tab.url)]: result })
-            .then(() => {
-                showNotification('success', 'Formulário salvo com sucesso!');
-            })
-            .catch(() => {
-                showNotification('error', 'Erro ao salvar os campos!');
+        try {
+            const [tab] = await browser.tabs.query({
+                active: true,
+                currentWindow: true,
             });
+
+            if (!tab.id || !tab.url) {
+                showNotification('error', 'Não foi possível obter informações da aba!');
+                return;
+            }
+
+            // Executar a função de captura no contexto da página usando o código do Helper
+            const [{ result }] = await browser.scripting.executeScript({
+                target: { tabId: Number(tab.id) },
+                func: () => {
+                    const inputs = Array.from(document.querySelectorAll("input, textarea, select")) as HTMLInputElement[];
+
+                    return Array.from(inputs)
+                        .filter((input) => {
+                            if (!input.name && !input.id) return false;
+                            if (['hidden', 'submit', 'button', 'reset', 'file'].includes(input.type)) return false;
+                            if (input.name && input.name.startsWith('_')) return false;
+                            if (input.name && ['token', 'method', 'uri', 'ip'].some((k) => input.name.toLowerCase().includes(k))) return false;
+                            return true;
+                        })
+                        .map((field) => {
+                            let value: string | boolean;
+                            if (field.type === 'checkbox') {
+                                value = field.checked;
+                            } else if (field.type === 'radio') {
+                                value = field.checked ? field.value : '';
+                            } else {
+                                value = field.value;
+                            }
+
+                            return {
+                                name: field.name || undefined,
+                                id: field.id || undefined,
+                                value: value,
+                                type: field.type,
+                                useUuid: false,
+                            };
+                        });
+                },
+            });
+
+            // Salvar usando a função centralizada do Helper
+            const saveResult = await Helper.saveFormFromFields(tab.url, result as FormField[]);
+
+            showNotification(saveResult.success ? 'success' : 'error', saveResult.message);
+        } catch {
+            showNotification('error', 'Erro ao salvar os campos!');
+        }
     };
 
     const autoFill = async (active: boolean) => {
