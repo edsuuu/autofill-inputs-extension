@@ -103,6 +103,14 @@ export class Helper {
             newFields.forEach((field) => {
                 const key = createFieldKey(field);
                 if (key && key !== '__') {
+                    // FIX: Manter configuração de useUuid se já existir
+                    if (existingFieldsMap.has(key)) {
+                        const existing = existingFieldsMap.get(key);
+                        if (existing?.useUuid) {
+                            field.useUuid = true;
+                        }
+                    }
+
                     newFieldsMap.set(key, field);
                     // Adicionar campos novos/atualizados da página atual
                     mergedFields.push(field);
@@ -164,19 +172,19 @@ export class Helper {
             // Converter padrão com * para regex de forma mais simples
             // Dividir o padrão em partes separadas por *
             const parts = pattern.split('*');
-            
+
             // Escapar cada parte e juntar com .*?
             const escapedParts = parts.map(part => {
                 // Escapar caracteres especiais do regex
                 return part.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
             });
-            
+
             // Juntar com .*? (qualquer caractere, não-guloso)
             const regexPattern = escapedParts.join('.*?');
-            
+
             const regex = new RegExp(`^${regexPattern}$`);
             const matches = regex.test(url);
-            
+
             return matches;
         } catch (error) {
             console.error('Erro ao verificar padrão:', error, { url, pattern });
@@ -327,6 +335,15 @@ export class Helper {
                     if ((campo.type === 'checkbox' || campo.type === 'radio') && input.type !== campo.type) {
                         return;
                     }
+                }
+
+                // FIX: Evitar loop e sobrescrita de dados do usuário
+                if (automatic) {
+                    // Ignora campos de texto/select que já possuem valor
+                    if (input.type !== 'checkbox' && input.type !== 'radio' && input.value) {
+                        return;
+                    }
+                    // Para checkboxes/radios não verificamos valor vazio da mesma forma
                 }
 
                 // Se o campo tem useUuid habilitado, gerar UUID
