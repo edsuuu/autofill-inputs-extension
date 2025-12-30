@@ -8,11 +8,11 @@ import { Helper } from './helper';
             try {
                 // Verificar se encontrou campos antes de tentar preencher
                 const fields = await Helper.getFieldsForUrl(window.location.href);
-                
+
                 if (fields && fields.length > 0) {
                     // Se encontrou campos, aguardar um pouco mais e executar
                     await new Promise(resolve => setTimeout(resolve, delay));
-                    
+
                     const helper = new Helper(true, window.location.href);
                     await helper.autoFill(window.location.href, true);
                     return;
@@ -20,7 +20,7 @@ import { Helper } from './helper';
             } catch (error) {
                 console.error('Erro ao tentar preenchimento automático:', error);
             }
-            
+
             // Aguardar antes da próxima tentativa
             if (i < attempts - 1) {
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -48,14 +48,19 @@ import { Helper } from './helper';
 
     // Observar mudanças na URL
     setInterval(checkUrlChange, 1000);
-    
-    // Observar mudanças no DOM (para páginas dinâmicas)
+
+    // Observar mudanças no DOM (para páginas dinâmicas) por 3 segundos
     const observer = new MutationObserver(() => {
         setTimeout(() => tryAutoFill(3, 200), 500);
     });
-    
+
     observer.observe(document.body, {
         childList: true,
         subtree: true,
     });
+
+    // Desconectar o observer após 3 segundos para evitar loops e travamentos
+    setTimeout(() => {
+        observer.disconnect();
+    }, 3000);
 })();
