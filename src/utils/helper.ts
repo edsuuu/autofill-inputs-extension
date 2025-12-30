@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import browser from 'webextension-polyfill';
+import { fakerPT_BR as faker } from '@faker-js/faker';
 
 export interface FormField {
     name?: string;
@@ -7,6 +7,7 @@ export interface FormField {
     value?: string | boolean;
     type?: string;
     useUuid?: boolean;
+    fakerType?: 'name' | 'email' | 'cep' | 'cnpj' | 'cpf' | 'phone' | 'company' | string;
 }
 
 export interface UrlPattern {
@@ -42,7 +43,7 @@ export class Helper {
                 if (input.name && input.name.startsWith('_')) return false;
 
                 // Excluir campos com nomes suspeitos
-                if (input.name && ['token', 'method', 'uri', 'ip'].some((k) => input.name.toLowerCase().includes(k))) return false;
+                if (input.name && ['token', 'method', 'uri', 'ip','search', 'datasets-switcher'].some((k) => input.name.toLowerCase().includes(k))) return false;
 
                 return true;
             })
@@ -346,9 +347,12 @@ export class Helper {
                     // Para checkboxes/radios não verificamos valor vazio da mesma forma
                 }
 
-                // Se o campo tem useUuid habilitado, gerar UUID
+                // Se o campo tem useUuid ou fakerType habilitado
                 let valueToSet = campo.value;
-                if (campo.useUuid) {
+
+                if (campo.fakerType) {
+                    valueToSet = Helper.generateFakerValue(campo.fakerType);
+                } else if (campo.useUuid) {
                     valueToSet = Helper.generateUuid();
                 } else {
                     valueToSet = (campo.value ?? "").toString().trim();
@@ -356,6 +360,73 @@ export class Helper {
                 this.setElementValue(input, valueToSet);
             });
         });
+    }
+
+    private static generateFakerValue(type: string): string {
+        try {
+            switch (type) {
+                case 'name': return faker.person.fullName();
+                case 'firstName': return faker.person.firstName();
+                case 'lastName': return faker.person.lastName();
+                case 'email': return faker.internet.email();
+                case 'cep': return faker.location.zipCode();
+                case 'cnpj': return Helper.generateCNPJ(); // Faker BR implementation might vary or be deprecated, safe to use custom or faker specific
+                case 'cpf': return Helper.generateCPF();
+                case 'phone': return faker.phone.number();
+                case 'company': return faker.company.name();
+                case 'jobTitle': return faker.person.jobTitle();
+                case 'city': return faker.location.city();
+                case 'state': return faker.location.state();
+                case 'street': return faker.location.street();
+                case 'number': return faker.location.buildingNumber();
+                case 'text': return faker.lorem.sentence();
+                case 'date': return faker.date.past().toISOString().split('T')[0];
+                default: return faker.lorem.word();
+            }
+        } catch (e) {
+            console.error("Faker generation error", e);
+            return "Error";
+        }
+    }
+
+    // CPF Generator (Algorithm)
+    private static generateCPF(): string {
+        const rnd = (n: number) => Math.round(Math.random() * n);
+        const mod = (dividend: number, divisor: number) => Math.round(dividend - (Math.floor(dividend / divisor) * divisor));
+        const n: number[] = Array(9).fill(0).map(() => rnd(9));
+
+        let d1 = n.reduce((acc, curr, i) => acc + (10 - i) * curr, 0);
+        d1 = 11 - mod(d1, 11);
+        if (d1 >= 10) d1 = 0;
+
+        let d2 = n.reduce((acc, curr, i) => acc + (11 - i) * curr, 0) + (2 * d1);
+        d2 = 11 - mod(d2, 11);
+        if (d2 >= 10) d2 = 0;
+
+        return `${n.join('')}${d1}${d2}`; // Unformatted for inputs usually, or formatted? Let's return numbers only for safety or formatted? Standard inputs usually accept numbers. Let's return formatted for visual.
+        // Actually, many inputs have masks. Let's return strictly numbers for better compatibility with masked inputs often, OR formatted.
+        // Let's stick to formatted as it looks better exemplified.
+        // return `${n.slice(0,3).join('')}.${n.slice(3,6).join('')}.${n.slice(6,9).join('')}-${d1}${d2}`;
+        // Reverting to Unformatted string to avoid mask conflicts usually.
+        return `${n.join('')}${d1}${d2}`;
+    }
+
+    // CNPJ Generator (Algorithm)
+    private static generateCNPJ(): string {
+        const rnd = (n: number) => Math.round(Math.random() * n);
+        const mod = (dividend: number, divisor: number) => Math.round(dividend - (Math.floor(dividend / divisor) * divisor));
+        const n: number[] = Array(8).fill(0).map(() => rnd(9));
+        n.push(0, 0, 0, 1); // Filial
+
+        let d1 = n.reduce((acc, curr, i) => acc + ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2][i]) * curr, 0);
+        d1 = 11 - mod(d1, 11);
+        if (d1 >= 10) d1 = 0;
+
+        let d2 = n.reduce((acc, curr, i) => acc + ([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2][i]) * curr, 0) + (2 * d1);
+        d2 = 11 - mod(d2, 11);
+        if (d2 >= 10) d2 = 0;
+
+        return `${n.join('')}${d1}${d2}`;
     }
 
     private normalize(value: string): string {
