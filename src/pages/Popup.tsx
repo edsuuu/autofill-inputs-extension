@@ -26,18 +26,38 @@ export default function Popup() {
         title: string;
         message: string;
         onConfirm?: () => void;
-            }>({
-                isOpen: false,
-                type: 'info',
-                title: '',
-                message: '',
-            });
+    }>({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        message: '',
+    });
+    const [currentOrigin, setCurrentOrigin] = useState<string>('');
 
     useEffect(() => {
         (async () => {
-            const data = await browser.storage.local.get(['enabled', 'floatingButton']);
+            const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+            let origin = '';
+
+            if (tab?.url) {
+                try {
+                    const urlObj = new URL(tab.url);
+                    origin = urlObj.origin;
+                    setCurrentOrigin(origin);
+                } catch {
+                    // Ignore invalid URLs
+                }
+            }
+
+            const data = await browser.storage.local.get(['enabled', 'floatingButtonOrigins']);
             setToggle(data.enabled !== false);
-            setFloatingButton(data.floatingButton || false);
+
+            const origins = (data.floatingButtonOrigins as string[]) || [];
+            if (origin) {
+                setFloatingButton(origins.includes(origin));
+            } else {
+                setFloatingButton(false);
+            }
         })();
     }, []);
 
@@ -124,14 +144,27 @@ export default function Popup() {
     };
 
     const toggleFloatingButton = async (active: boolean) => {
+        if (!currentOrigin) {
+            showNotification('error', 'Não é possível ativar para esta página.');
+            return;
+        }
+
         setFloatingButton(active);
-        await browser.storage.local.set({ floatingButton: active });
+
+        const data = await browser.storage.local.get('floatingButtonOrigins');
+        let origins = (data.floatingButtonOrigins as string[]) || [];
 
         if (active) {
-            showNotification('success', 'Botão flutuante ativado!');
+            if (!origins.includes(currentOrigin)) {
+                origins.push(currentOrigin);
+            }
+            showNotification('success', 'Botão flutuante ativado para este site!');
         } else {
-            showNotification('success', 'Botão flutuante desativado!');
+            origins = origins.filter((o) => o !== currentOrigin);
+            showNotification('success', 'Botão flutuante desativado para este site!');
         }
+
+        await browser.storage.local.set({ floatingButtonOrigins: origins });
     };
 
     return (
@@ -207,7 +240,8 @@ export default function Popup() {
                                 isOpen: true,
                                 type: 'success',
                                 title: 'Novidades (v1.1.1)',
-                                message: '- Agora você pode salvar formulários para URLs similares usando * como coringa\n- Opção nos campos salvos para gerar códigos UUID\n- Botão flutuante para salvar e preencher formulários\n',
+                                message:
+                                    '- Agora você pode salvar formulários para URLs similares usando * como coringa\n- Opção nos campos salvos para gerar códigos UUID\n- Botão flutuante para salvar e preencher formulários\n',
                             });
                         }}
                         className="flex-1 mt-5 p-2 rounded-md bg-green-600 text-white cursor-pointer"
@@ -217,14 +251,7 @@ export default function Popup() {
                 </div>
             </div>
 
-            <Modal
-                isOpen={modal.isOpen}
-                onClose={() => setModal({ ...modal, isOpen: false })}
-                title={modal.title}
-                message={modal.message}
-                type={modal.type}
-                onConfirm={modal.onConfirm}
-            />
+            <Modal isOpen={modal.isOpen} onClose={() => setModal({ ...modal, isOpen: false })} title={modal.title} message={modal.message} type={modal.type} onConfirm={modal.onConfirm} />
         </>
     );
 }

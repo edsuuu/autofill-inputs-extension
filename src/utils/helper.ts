@@ -1,5 +1,5 @@
-import browser from 'webextension-polyfill';
 import { fakerPT_BR as faker } from '@faker-js/faker';
+import browser from 'webextension-polyfill';
 
 export interface FormField {
     name?: string;
@@ -404,11 +404,6 @@ export class Helper {
         if (d2 >= 10) d2 = 0;
 
         return `${n.join('')}${d1}${d2}`; // Unformatted for inputs usually, or formatted? Let's return numbers only for safety or formatted? Standard inputs usually accept numbers. Let's return formatted for visual.
-        // Actually, many inputs have masks. Let's return strictly numbers for better compatibility with masked inputs often, OR formatted.
-        // Let's stick to formatted as it looks better exemplified.
-        // return `${n.slice(0,3).join('')}.${n.slice(3,6).join('')}.${n.slice(6,9).join('')}-${d1}${d2}`;
-        // Reverting to Unformatted string to avoid mask conflicts usually.
-        return `${n.join('')}${d1}${d2}`;
     }
 
     // CNPJ Generator (Algorithm)

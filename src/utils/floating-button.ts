@@ -255,9 +255,11 @@ async function handleFillClick(e: MouseEvent) {
 
 async function checkFloatingButtonStatus() {
     try {
-        const data = await chrome.storage.local.get(['floatingButton', 'floatingButtonPosition']);
+        const data = await chrome.storage.local.get(['floatingButtonOrigins', 'floatingButtonPosition']);
+        const origins = (data.floatingButtonOrigins as string[]) || [];
+        const currentOrigin = window.location.origin;
 
-        if (data.floatingButton) {
+        if (origins.includes(currentOrigin)) {
             createFloatingButton();
 
             const position = (data.floatingButtonPosition as { x: number; y: number }) || {
@@ -275,18 +277,38 @@ async function checkFloatingButtonStatus() {
 
 // Listener para mudanças no storage
 chrome.storage.onChanged.addListener((changes: Record<string, unknown>, namespace: string) => {
-    if (namespace === 'local' && changes.floatingButton) {
-        const floatingButtonChange = changes.floatingButton as { newValue: boolean };
-        if (floatingButtonChange.newValue) {
-            createFloatingButton();
-            const positionChange = changes.floatingButtonPosition as { newValue: { x: number; y: number } } | undefined;
-            const position = positionChange?.newValue || {
-                x: window.innerWidth - 120,
-                y: window.innerHeight - 68
-            };
-            updateButtonPosition(position.x, position.y);
-        } else {
-            removeFloatingButton();
+    if (namespace === 'local' && (changes.floatingButtonOrigins || changes.floatingButtonPosition)) {
+
+        // Se houver mudança na lista de origens
+        if (changes.floatingButtonOrigins) {
+            const origins = (changes.floatingButtonOrigins as { newValue: string[] }).newValue || [];
+            const currentOrigin = window.location.origin;
+
+            if (origins.includes(currentOrigin)) {
+                createFloatingButton();
+
+                // Se o botão acabou de ser criado, posicionar nas coordenadas salvas (ou padrão)
+                // Precisamos buscar as coordenadas novamente pois podem não estar no objeto 'changes' se apenas as origens mudaram
+                chrome.storage.local.get(['floatingButtonPosition']).then((data) => {
+                    const position = (data.floatingButtonPosition as { x: number; y: number }) || {
+                        x: window.innerWidth - 120,
+                        y: window.innerHeight - 68
+                    };
+                    updateButtonPosition(position.x, position.y);
+                });
+
+            } else {
+                removeFloatingButton();
+            }
+        }
+
+        // Se houver mudança na posição e o botão estiver visível
+        if (changes.floatingButtonPosition && floatingButton) {
+            const positionChange = changes.floatingButtonPosition as { newValue: { x: number; y: number } };
+            const position = positionChange.newValue;
+            if (position) {
+                updateButtonPosition(position.x, position.y);
+            }
         }
     }
 });

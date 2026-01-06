@@ -41,7 +41,7 @@ export default function Options() {
             const forms: SavedForm[] = [];
 
             Object.keys(data).forEach((key) => {
-                if (!['enabled', 'floatingButton', 'floatingButtonPosition', '__url_patterns__'].includes(key) && data[key]) {
+                if (!['enabled', 'floatingButton', 'floatingButtonOrigins', 'floatingButtonPosition', '__url_patterns__'].includes(key) && data[key]) {
                     forms.push({
                         url: key,
                         fields: data[key],

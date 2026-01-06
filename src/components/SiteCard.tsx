@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { FormField } from '../utils/helper';
 import { PencilIcon, TrashIcon, LinkIcon, CheckIcon, XMarkIcon, SparklesIcon, BoltIcon } from '@heroicons/react/24/outline';
+import { FormField } from '../utils/helper';
 
 interface SiteCardProps {
     url: string;
@@ -198,8 +198,8 @@ export default function SiteCard({ url, fields, onSave, onDelete, onConvertToPat
                                             field.fakerType
                                                 ? `(Gerado: ${FAKER_OPTIONS.find((o) => o.value === field.fakerType)?.label})`
                                                 : field.useUuid
-                                                ? '(Gerado: UUID)'
-                                                : (field.value as string) || ''
+                                                    ? '(Gerado: UUID)'
+                                                    : (field.value as string) || ''
                                         }
                                         onChange={(e) => updateFieldValue(index, e.target.value)}
                                         disabled={!!field.useUuid || !!field.fakerType || ['radio', 'checkbox', 'select-one'].includes(field.type || '')}
@@ -220,12 +220,12 @@ export default function SiteCard({ url, fields, onSave, onDelete, onConvertToPat
                                     key={index}
                                     className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors max-w-full
                                     ${
-                                        field.fakerType
-                                            ? 'bg-purple-50 text-purple-700 border-purple-100'
-                                            : field.useUuid
-                                            ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                            : 'bg-gray-50 text-gray-600 border-gray-100'
-                                    }`}
+                                field.fakerType
+                                    ? 'bg-purple-50 text-purple-700 border-purple-100'
+                                    : field.useUuid
+                                        ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                        : 'bg-gray-50 text-gray-600 border-gray-100'
+                                }`}
                                 >
                                     <span className="opacity-70 truncate max-w-[100px]">{field.name || field.id}:</span>
                                     <span className="truncate max-w-[150px]">
