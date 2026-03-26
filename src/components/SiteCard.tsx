@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { type FormField } from '../utils/helper';
+import { type FormField } from '../types';
 import { 
     TrashIcon, 
     PencilSquareIcon, 
@@ -15,7 +15,6 @@ interface SiteCardProps {
     fields: FormField[];
     onSave: (url: string, fields: FormField[]) => void;
     onDelete: (url: string) => void;
-    onConvertToPattern: (url: string) => void;
 }
 
 const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) => {
@@ -41,7 +40,6 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-xl hover:border-indigo-100 transition-all duration-300 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
-            {/* Header / Main Bar */}
             <div className="p-5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center shrink-0 text-indigo-600 font-bold text-xl shadow-inner uppercase">
@@ -105,7 +103,6 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
                 </div>
             </div>
 
-            {/* Expanded Fields Area */}
             {isExpanded && (
                 <div className="px-5 pb-6 pt-2 border-t border-slate-50 bg-slate-50/30 animate-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

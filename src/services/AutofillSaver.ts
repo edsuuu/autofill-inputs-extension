@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import { FormField, UrlPattern } from '../../utils/helper';
+import { FormField, UrlPattern } from '../types';
 
 export class AutofillSaver {
     private static PATTERNS_KEY = '__url_patterns__';
@@ -9,7 +9,6 @@ export class AutofillSaver {
     public static normalizeUrl(url: string): string {
         try {
             const parsed = new URL(url);
-            // Remove hash and trailing slash for matching
             return (parsed.origin + parsed.pathname).replace(/\/$/, '');
         } catch {
             return url.replace(/\/$/, '');
@@ -46,7 +45,6 @@ export class AutofillSaver {
         const data = await browser.storage.local.get(this.SITE_DATA_KEY);
         const siteData = data[this.SITE_DATA_KEY] as Record<string, Record<string, FormField[]>> || {};
         
-        // Try normalized, then original as fallback
         if (siteData[normalized] && siteData[normalized][profile]) {
             return siteData[normalized][profile];
         }
@@ -127,7 +125,6 @@ export class AutofillSaver {
         let siteData = data[this.SITE_DATA_KEY] as any || {};
         let migrated = false;
 
-        // 1. Move root-level URLs (Legacy) to __site_data__
         const specialKeys = [this.PATTERNS_KEY, this.PROFILES_KEY, this.SITE_DATA_KEY, 'enabled', 'barBehavior', 'blacklistedSites', 'isBarOpen', 'currentProfile', 'hasNewUpdate', 'lastSync'];
         const keysToRemove: string[] = [];
 
@@ -135,14 +132,12 @@ export class AutofillSaver {
             if (!specialKeys.includes(key) && (key.startsWith('http') || key.startsWith('file'))) {
                 const normalized = this.normalizeUrl(key);
                 if (!siteData[normalized]) siteData[normalized] = {};
-                // Handle legacy data (usually an array of fields)
                 siteData[normalized]['Padrão'] = data[key];
                 keysToRemove.push(key);
                 migrated = true;
             }
         }
 
-        // 2. Convert old __site_data__ entries (arrays) to profile-keyed objects
         for (const url of Object.keys(siteData)) {
             if (Array.isArray(siteData[url])) {
                 const fields = siteData[url];
@@ -180,9 +175,7 @@ export class AutofillSaver {
                 return { success: false, message: 'Arquivo de backup inválido ou chave incorreta!' };
             }
 
-            // Remove metadata before restoring
             const { __backup_metadata__, ...rest } = data;
-            
             await browser.storage.local.clear();
             await browser.storage.local.set(rest);
             

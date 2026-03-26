@@ -6,7 +6,6 @@ interface ProfileModalProps {
     onSave: (name: string) => void;
     existingProfiles: string[];
     isPopover?: boolean;
-    anchorRight?: boolean;
 }
 
 export default function ProfileModal({ 
@@ -14,8 +13,7 @@ export default function ProfileModal({
     onClose, 
     onSave, 
     existingProfiles,
-    isPopover = false,
-    anchorRight = false
+    isPopover = false
 }: ProfileModalProps) {
     const [name, setName] = useState('');
     const [error, setError] = useState('');
@@ -25,7 +23,6 @@ export default function ProfileModal({
         if (isOpen) {
             setName('');
             setError('');
-            // Short delay to ensure the modal is rendered for focus
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 50);

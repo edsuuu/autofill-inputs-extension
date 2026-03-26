@@ -10,7 +10,6 @@ interface ModalProps {
     confirmText?: string;
     cancelText?: string;
     isPopover?: boolean;
-    anchorRight?: boolean;
 }
 
 export default function Modal({ 
@@ -22,8 +21,7 @@ export default function Modal({
     onConfirm, 
     confirmText = 'Confirmar', 
     cancelText = 'Cancelar',
-    isPopover = false,
-    anchorRight = false
+    isPopover = false
 }: ModalProps) {
     useEffect(() => {
         if (isOpen) {
@@ -75,19 +73,6 @@ export default function Modal({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 );
-        }
-    };
-
-    const getColorClasses = () => {
-        switch (type) {
-            case 'success':
-                return 'bg-green-50 border-green-200';
-            case 'error':
-                return 'bg-red-50 border-red-200';
-            case 'warning':
-                return 'bg-yellow-50 border-yellow-200';
-            default:
-                return 'bg-blue-50 border-blue-200';
         }
     };
 

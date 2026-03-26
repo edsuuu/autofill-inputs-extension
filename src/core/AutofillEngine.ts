@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import { AutofillService } from '../services/Autofill/AutofillService';
+import { AutofillService } from '../services/AutofillService';
 
 (async function () {
     let isFilling = false;
@@ -9,7 +9,6 @@ import { AutofillService } from '../services/Autofill/AutofillService';
         if (isFilling) return;
         isFilling = true;
         try {
-            // One attempt per trigger is enough with MutationObserver.
             await AutofillService.fillForm(window.location.href, true);
         } catch (error) {
             console.error('Erro ao tentar preenchimento automático:', error);
@@ -50,9 +49,8 @@ import { AutofillService } from '../services/Autofill/AutofillService';
 
     setTimeout(() => {
         observer.disconnect();
-    }, 2000); // Increased to 5s to catch late-loading forms
+    }, 2000);
 
-    // Listen for profile changes to re-fill immediately
     browser.storage.onChanged.addListener((changes) => {
         if (changes.currentProfile) {
             tryAutoFill(); 

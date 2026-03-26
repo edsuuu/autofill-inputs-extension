@@ -1,4 +1,4 @@
-// Faker moved to background script to reduce content script size
+
 
 export interface FormField {
     name?: string;

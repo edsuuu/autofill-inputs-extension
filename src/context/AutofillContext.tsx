@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
-import { AutofillSaver } from '../services/Autofill/AutofillSaver';
+import { AutofillSaver } from '../services/AutofillSaver';
 
 interface AutofillState {
     isEnabled: boolean;
@@ -47,9 +46,8 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const loadSettings = async () => {
             let settings = await AutofillSaver.getSettings();
             let profiles = await AutofillSaver.getProfiles();
-            
-            // Migration: Rename Default to Padrão
             let needsSave = false;
+            
             if (profiles.includes('Default')) {
                 profiles = profiles.map(p => p === 'Default' ? 'Padrão' : p);
                 await AutofillSaver.saveProfiles(profiles);
@@ -160,7 +158,6 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const profiles = state.profiles.filter(p => p !== name);
         await AutofillSaver.saveProfiles(profiles);
         
-        // If current profile was the deleted one, switch to Default
         if (state.currentProfile === name) {
             await setCurrentProfile('Padrão');
         }

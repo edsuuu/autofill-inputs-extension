@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAutofill } from '../context/AutofillContext';
-import { AutofillService } from '../services/Autofill/AutofillService';
+import { AutofillService } from '../services/AutofillService';
 import browser from 'webextension-polyfill';
 import ProfileModal from '../components/ProfileModal';
 
@@ -87,16 +87,10 @@ export default function Popup() {
         }
     };
 
-    const handleCreateProfile = (name: string) => {
-        addProfile(name);
-        setCurrentProfile(name);
-    };
-
     if (isLoading) return <div className="p-12 text-center text-slate-400 font-semibold uppercase tracking-widest text-xs animate-pulse">Carregando...</div>;
 
     return (
         <div className="w-[360px] bg-slate-50 text-slate-900 border-none rounded-none overflow-hidden shadow-2xl font-sans relative" style={{ fontFamily: "'Inter', sans-serif" }}>
-            {/* Header */}
             <header className="px-5 pt-7 pb-5 bg-white border-b border-slate-100">
                 <div className="flex items-center">
                     <div className="flex items-center gap-3 min-w-0">

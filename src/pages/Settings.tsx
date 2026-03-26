@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-console */
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
-import { AutofillSaver } from '../services/Autofill/AutofillSaver';
+import { AutofillSaver } from '../services/AutofillSaver';
 
 export default function Settings() {
     const [settings, setSettings] = useState({
@@ -76,7 +74,6 @@ export default function Settings() {
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    {/* Ativar/Desativar */}
                     <div className="p-8 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Status Geral</h3>
@@ -88,7 +85,6 @@ export default function Settings() {
                         </label>
                     </div>
 
-                    {/* Comportamento da Barra */}
                     <div className="p-8 space-y-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Visibilidade da Barra</h3>
@@ -114,7 +110,6 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Blacklist */}
                     <div className="p-8 space-y-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Sites Ignorados</h3>

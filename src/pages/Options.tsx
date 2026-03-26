@@ -1,11 +1,10 @@
-/* eslint-disable import/no-unresolved */
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Modal from '../components/Modal';
 import ProfileModal from '../components/ProfileModal';
 import SiteCard from '../components/SiteCard';
-import { AutofillSaver } from '../services/Autofill/AutofillSaver';
-import { type UrlPattern, type FormField } from '../utils/helper';
+import { AutofillSaver } from '../services/AutofillSaver';
+import { type UrlPattern, type FormField } from '../types';
 import { useAutofill } from '../context/AutofillContext';
 
 interface SavedForm {
@@ -20,7 +19,6 @@ export default function Options() {
     const [urlPatterns, setUrlPatterns] = useState<UrlPattern[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [newPattern, setNewPattern] = useState<string>('');
-    const [showPatternForm, setShowPatternForm] = useState<boolean>(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = (searchParams.get('tab') as 'sites' | 'profiles' | 'patterns' | 'backup' | 'blacklist' | 'whats-new') || 
                       (window.location.hash === '#whats-new' ? 'whats-new' : 'sites');
@@ -123,7 +121,6 @@ export default function Options() {
 
             await AutofillSaver.saveUrlPattern(pattern, form.fields, true);
             setNewPattern('');
-            setShowPatternForm(false);
             await loadUrlPatterns();
             showModal('success', 'Sucesso', 'Padrão de URL criado com sucesso!');
         } catch {
@@ -189,14 +186,13 @@ export default function Options() {
             }
         };
         reader.readAsText(file);
-        // Reset input
         e.target.value = '';
     };
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
             <div className="max-w-6xl mx-auto space-y-6">
-                <header className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all">
+                <header className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 transition-all">
                     <div className="flex items-center gap-5">
                         <div className="w-14 h-14 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,7 +215,7 @@ export default function Options() {
                             <input
                                 type="text"
                                 placeholder="Buscar URL..."
-                                className="bg-slate-100 border-none transition-all focus:bg-white focus:ring-2 focus:ring-indigo-500 block w-full md:w-80 pl-11 pr-4 py-3 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 shadow-inner"
+                                className="bg-slate-100 border-none transition-all focus:bg-white focus:ring-2 focus:ring-indigo-500 block w-full lg:w-80 pl-11 pr-4 py-3 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 shadow-inner"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -261,41 +257,40 @@ export default function Options() {
                     </div>
                 </header>
 
-                {/* Tabs Nav */}
-                <div className="flex items-center gap-2 border-b border-slate-200 pb-px">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-px overflow-x-auto scrollbar-hide whitespace-nowrap">
                     <button
                         onClick={() => setActiveTab('sites')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'sites' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'sites' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Sites salvos
                     </button>
                     <button
                         onClick={() => setActiveTab('profiles')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'profiles' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'profiles' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Perfis
                     </button>
                     <button
                         onClick={() => setActiveTab('patterns')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'patterns' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'patterns' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Padrões globais
                     </button>
                     <button
                         onClick={() => setActiveTab('blacklist')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'blacklist' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'blacklist' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Sites ignorados
                     </button>
                     <button
                         onClick={() => setActiveTab('whats-new')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'whats-new' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'whats-new' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Novidades
                     </button>
                     <button
                         onClick={() => setActiveTab('backup')}
-                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'backup' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 shrink-0 ${activeTab === 'backup' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
                         Exportar/Importar
                     </button>
@@ -325,7 +320,7 @@ export default function Options() {
                                                     <p className="text-slate-400 text-sm font-medium">Nenhum site salvo neste perfil ainda.</p>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
+                                                <div className="grid grid-cols-1 gap-6">
                                                     {filtered.map((form) => (
                                                         <SiteCard
                                                             key={`${form.url}-${form.profile}`}
@@ -333,7 +328,6 @@ export default function Options() {
                                                             fields={form.fields}
                                                             onSave={(url, fields) => handleSaveForm(url, profile, fields)}
                                                             onDelete={(url) => handleDeleteForm(url, profile)}
-                                                            onConvertToPattern={() => {}}
                                                         />
                                                     ))}
                                                 </div>
@@ -534,7 +528,7 @@ export default function Options() {
 
                     {activeTab === 'blacklist' && (
                         <div className="max-w-4xl mx-auto space-y-8 py-4">
-                            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 space-y-8">
+                            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 md:p-8 space-y-8">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 shadow-sm">
@@ -567,7 +561,7 @@ export default function Options() {
                                 </div>
 
                                 <div className="p-1 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div className="flex gap-2 p-2">
+                                    <div className="flex flex-col sm:flex-row gap-2 p-2">
                                         <input
                                             type="text"
                                             placeholder="Ex: google.com ou https://site.com"
@@ -588,7 +582,7 @@ export default function Options() {
                                                     setNewBlacklistSite('');
                                                 }
                                             }}
-                                            className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-slate-900 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 active:scale-95"
+                                            className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95"
                                         >
                                             Adicionar Site
                                         </button>
@@ -670,7 +664,6 @@ export default function Options() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Feature 1: Botão Flutuante */}
                                 <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-100 border border-slate-100 space-y-6 hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-500 group">
                                     <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-indigo-200 group-hover:rotate-6 transition-transform duration-500">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -689,7 +682,6 @@ export default function Options() {
                                     </div>
                                 </div>
 
-                                {/* Feature 2: Blacklist Inteligente */}
                                 <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-100 border border-slate-100 space-y-6 hover:shadow-2xl hover:shadow-rose-100 transition-all duration-500 group">
                                     <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-orange-500 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-rose-200 group-hover:-rotate-6 transition-transform duration-500">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -708,7 +700,6 @@ export default function Options() {
                                     </div>
                                 </div>
 
-                                {/* Feature 3: Tooltips Inteligentes */}
                                 <div className="md:col-span-2 bg-gradient-to-r from-slate-900 to-indigo-950 rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-200 border border-slate-800 flex flex-col md:flex-row gap-10 items-center overflow-hidden relative">
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
                                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>

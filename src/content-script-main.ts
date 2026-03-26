@@ -1,2 +1,2 @@
-import './utils/autofill';
+import './core/AutofillEngine';
 import './content-script-ui';

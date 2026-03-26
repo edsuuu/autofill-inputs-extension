@@ -40,7 +40,7 @@ async function init() {
 
     browser.runtime.onMessage.addListener(async (message) => {
         if (message.action === 'SAVE_FORM') {
-            const { AutofillService } = await import('./services/Autofill/AutofillService');
+            const { AutofillService } = await import('./services/AutofillService');
             const result = await AutofillService.captureAndSave(window.location.href);
             
             const event = new CustomEvent('autofill-toast', { 
