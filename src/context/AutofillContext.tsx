@@ -7,6 +7,7 @@ interface AutofillState {
     isEnabled: boolean;
     barBehavior: 'all' | 'per-site';
     isBarOpen: boolean;
+    isFloatingEnabled: boolean;
     currentProfile: string;
     profiles: string[];
     blacklistedSites: string[];
@@ -17,6 +18,7 @@ interface AutofillState {
 interface AutofillContextType extends AutofillState {
     setBarBehavior: (behavior: 'all' | 'per-site') => void;
     setBarOpen: (isOpen: boolean) => void;
+    setIsFloatingEnabled: (enabled: boolean) => void;
     setCurrentProfile: (profile: string) => void;
     addSiteToBlacklist: (site: string) => Promise<void>;
     removeSiteFromBlacklist: (site: string) => Promise<void>;
@@ -32,7 +34,8 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [state, setState] = useState<AutofillState>({
         isEnabled: true,
         barBehavior: 'all',
-        isBarOpen: true,
+        isBarOpen: false,
+        isFloatingEnabled: true,
         currentProfile: 'Padrão',
         profiles: ['Padrão', 'Trabalho', 'Pessoal'],
         blacklistedSites: [],
@@ -62,12 +65,13 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             setState(prev => ({
                 ...prev,
-                isEnabled: settings.enabled ?? true,
-                barBehavior: settings.barBehavior ?? 'all',
-                isBarOpen: settings.isBarOpen ?? true,
+                isEnabled: settings.enabled !== false,
+                barBehavior: settings.barBehavior || 'all',
+                isBarOpen: settings.isBarOpen || false,
+                isFloatingEnabled: settings.isFloatingEnabled !== false,
                 currentProfile: settings.currentProfile || 'Padrão',
                 profiles: profiles,
-                blacklistedSites: settings.blacklistedSites ?? [],
+                blacklistedSites: settings.blacklistedSites || [],
                 isLoading: false
             }));
         };
@@ -81,6 +85,7 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     isEnabled: changes.enabled && changes.enabled.newValue !== undefined ? changes.enabled.newValue : prev.isEnabled,
                     barBehavior: changes.barBehavior && changes.barBehavior.newValue !== undefined ? changes.barBehavior.newValue : prev.barBehavior,
                     isBarOpen: changes.isBarOpen && changes.isBarOpen.newValue !== undefined ? changes.isBarOpen.newValue : prev.isBarOpen,
+                    isFloatingEnabled: changes.isFloatingEnabled && changes.isFloatingEnabled.newValue !== undefined ? changes.isFloatingEnabled.newValue : prev.isFloatingEnabled,
                     currentProfile: changes.currentProfile && changes.currentProfile.newValue !== undefined ? changes.currentProfile.newValue : prev.currentProfile,
                     profiles: (changes.__profiles__ && changes.__profiles__.newValue !== undefined) ? changes.__profiles__.newValue : prev.profiles,
                     blacklistedSites: changes.blacklistedSites && changes.blacklistedSites.newValue !== undefined ? changes.blacklistedSites.newValue : prev.blacklistedSites
@@ -102,6 +107,11 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setState(prev => ({ ...prev, isBarOpen: isOpen }));
     };
 
+    const setIsFloatingEnabled = async (enabled: boolean) => {
+        await AutofillSaver.saveSettings({ isFloatingEnabled: enabled });
+        setState(prev => ({ ...prev, isFloatingEnabled: enabled }));
+    };
+
     const setCurrentProfile = async (profile: string) => {
         await AutofillSaver.saveSettings({ currentProfile: profile });
         setState(prev => ({ ...prev, currentProfile: profile }));
@@ -112,6 +122,7 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const newBlacklist = [...state.blacklistedSites, site];
         await AutofillSaver.saveSettings({ blacklistedSites: newBlacklist });
         setState(prev => ({ ...prev, blacklistedSites: newBlacklist }));
+        showToast('Site adicionado à blacklist!', 'success');
     };
 
     const removeSiteFromBlacklist = async (site: string) => {
@@ -168,6 +179,7 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ...state,
             setBarBehavior,
             setBarOpen,
+            setIsFloatingEnabled,
             setCurrentProfile,
             addSiteToBlacklist,
             removeSiteFromBlacklist,

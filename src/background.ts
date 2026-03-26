@@ -7,7 +7,6 @@ browser.runtime.onInstalled.addListener(async (details) => {
         await browser.action.setBadgeText({ text: "Novo" });
         await browser.action.setBadgeBackgroundColor({ color: "#6366f1" });
         await browser.storage.local.set({ hasNewUpdate: true });
-        await browser.tabs.create({ url: "src/options.html#whats-new" });
     }
 });
 
@@ -19,7 +18,7 @@ browser.runtime.onMessage.addListener(async (message) => {
     if (message.action === 'GENERATE_FAKER_VALUE') {
         const { type } = message;
         const { faker } = await import('@faker-js/faker/locale/pt_BR');
-        
+
         switch (type) {
             case 'name': return faker.person.fullName();
             case 'firstName': return faker.person.firstName();

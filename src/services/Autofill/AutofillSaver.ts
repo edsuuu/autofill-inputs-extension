@@ -115,7 +115,7 @@ export class AutofillSaver {
     }
 
     public static async getSettings(): Promise<any> {
-        return await browser.storage.local.get(['enabled', 'barBehavior', 'blacklistedSites', 'isBarOpen', 'currentProfile']);
+        return await browser.storage.local.get(['enabled', 'barBehavior', 'blacklistedSites', 'isBarOpen', 'currentProfile', 'isFloatingEnabled']);
     }
 
     public static async saveSettings(settings: any): Promise<void> {

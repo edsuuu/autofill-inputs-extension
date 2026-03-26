@@ -15,20 +15,23 @@ interface SavedForm {
 }
 
 export default function Options() {
-    const { profiles, addProfile, deleteProfile } = useAutofill();
+    const { profiles, addProfile, deleteProfile, blacklistedSites, addSiteToBlacklist, removeSiteFromBlacklist } = useAutofill();
     const [groupedForms, setGroupedForms] = useState<Record<string, SavedForm[]>>({});
     const [urlPatterns, setUrlPatterns] = useState<UrlPattern[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [newPattern, setNewPattern] = useState<string>('');
     const [showPatternForm, setShowPatternForm] = useState<boolean>(false);
     const [searchParams, setSearchParams] = useSearchParams();
-    const activeTab = (searchParams.get('tab') as 'sites' | 'profiles' | 'patterns' | 'backup') || 'sites';
+    const activeTab = (searchParams.get('tab') as 'sites' | 'profiles' | 'patterns' | 'backup' | 'blacklist' | 'whats-new') || 
+                      (window.location.hash === '#whats-new' ? 'whats-new' : 'sites');
 
-    const setActiveTab = (tab: 'sites' | 'profiles' | 'patterns' | 'backup') => {
+    const setActiveTab = (tab: 'sites' | 'profiles' | 'patterns' | 'backup' | 'blacklist' | 'whats-new') => {
         setSearchParams({ tab });
     };
     const [selectedProfile, setSelectedProfile] = useState<string>('all');
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [blacklistFilter, setBlacklistFilter] = useState('');
+    const [newBlacklistSite, setNewBlacklistSite] = useState('');
     const [modal, setModal] = useState<{
         isOpen: boolean;
         type: 'info' | 'success' | 'warning' | 'error' | 'confirm';
@@ -279,6 +282,18 @@ export default function Options() {
                         Padrões globais
                     </button>
                     <button
+                        onClick={() => setActiveTab('blacklist')}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'blacklist' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    >
+                        Sites ignorados
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('whats-new')}
+                        className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'whats-new' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    >
+                        Novidades
+                    </button>
+                    <button
                         onClick={() => setActiveTab('backup')}
                         className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'backup' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
@@ -512,6 +527,209 @@ export default function Options() {
                                         <strong className="block mb-0.5">Aviso Importante:</strong>A importação de dados irá substituir TODOS os seus dados atuais. Certifique-se de que o arquivo JSON
                                         é válido e contém a chave de segurança correta.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'blacklist' && (
+                        <div className="max-w-4xl mx-auto space-y-8 py-4">
+                            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 space-y-8">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 shadow-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sites Ignorados</h2>
+                                            <p className="text-slate-500 font-medium text-sm">Gerencie os sites onde o AutoFill nunca deve aparecer.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Filtrar por nome..."
+                                                className="pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64"
+                                                value={blacklistFilter}
+                                                onChange={(e) => setBlacklistFilter(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex gap-2 p-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: google.com ou https://site.com"
+                                            className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                                            value={newBlacklistSite}
+                                            onChange={(e) => setNewBlacklistSite(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && newBlacklistSite) {
+                                                    addSiteToBlacklist(newBlacklistSite);
+                                                    setNewBlacklistSite('');
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (newBlacklistSite) {
+                                                    addSiteToBlacklist(newBlacklistSite);
+                                                    setNewBlacklistSite('');
+                                                }
+                                            }}
+                                            className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-slate-900 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 active:scale-95"
+                                        >
+                                            Adicionar Site
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {blacklistedSites
+                                        .filter(site => site.toLowerCase().includes(blacklistFilter.toLowerCase()))
+                                        .map((site) => (
+                                            <div
+                                                key={site}
+                                                className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 group hover:border-rose-100 hover:bg-rose-50/30 transition-all animate-in fade-in slide-in-from-left-4 duration-300"
+                                            >
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shrink-0">
+                                                        <img
+                                                            src={`https://www.google.com/s2/favicons?domain=${site}&sz=64`}
+                                                            alt=""
+                                                            className="w-5 h-5 opacity-70"
+                                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                        />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <span className="text-sm font-bold text-slate-800 truncate block">{site}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => removeSiteFromBlacklist(site)}
+                                                    className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-rose-100"
+                                                    title="Remover"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                    {blacklistedSites.length === 0 && (
+                                        <div className="py-20 text-center space-y-4 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto text-slate-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-900 font-bold">Nenhum site ignorado</p>
+                                                <p className="text-xs text-slate-400 font-medium">Sites que você adicionar aparecerão aqui.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {blacklistedSites.length > 0 && blacklistedSites.filter(site => site.toLowerCase().includes(blacklistFilter.toLowerCase())).length === 0 && (
+                                        <div className="py-20 text-center">
+                                            <p className="text-slate-400 text-sm font-medium">Nenhum site encontrado para "{blacklistFilter}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'whats-new' && (
+                        <div className="max-w-4xl mx-auto space-y-12 py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                            <div className="text-center space-y-4">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase tracking-widest border border-indigo-100 mb-2">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                    </span>
+                                    Atualização Disponível
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                                    Descubra as <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Novidades</span>
+                                </h2>
+                                <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
+                                    Preparamos recursos incríveis para tornar sua experiência de preenchimento ainda mais rápida e intuitiva.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Feature 1: Botão Flutuante */}
+                                <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-100 border border-slate-100 space-y-6 hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-500 group">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-indigo-200 group-hover:rotate-6 transition-transform duration-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <h3 className="text-2xl font-black text-slate-900">Botão Flutuante Radial</h3>
+                                        <p className="text-slate-500 font-medium leading-relaxed">
+                                            Agora você tem um controle total na ponta dos dedos. Arraste o botão para onde quiser e acesse as ferramentas rapidamente através do menu radial intuitivo.
+                                        </p>
+                                    </div>
+                                    <div className="pt-4 flex flex-wrap gap-2">
+                                        <span className="px-3 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-100 uppercase tracking-widest">Draggable</span>
+                                        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg border border-indigo-100 uppercase tracking-widest">Radial Menu</span>
+                                    </div>
+                                </div>
+
+                                {/* Feature 2: Blacklist Inteligente */}
+                                <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-100 border border-slate-100 space-y-6 hover:shadow-2xl hover:shadow-rose-100 transition-all duration-500 group">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-orange-500 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-rose-200 group-hover:-rotate-6 transition-transform duration-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <h3 className="text-2xl font-black text-slate-900">Configurações Avançadas</h3>
+                                        <p className="text-slate-500 font-medium leading-relaxed">
+                                            Gerencie seus sites ignorados com facilidade. Adicionamos busca em tempo real e uma nova interface scrollable para manter tudo organizado.
+                                        </p>
+                                    </div>
+                                    <div className="pt-4 flex flex-wrap gap-2">
+                                        <span className="px-3 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-100 uppercase tracking-widest">Search Control</span>
+                                        <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-lg border border-rose-100 uppercase tracking-widest">Blacklist</span>
+                                    </div>
+                                </div>
+
+                                {/* Feature 3: Tooltips Inteligentes */}
+                                <div className="md:col-span-2 bg-gradient-to-r from-slate-900 to-indigo-950 rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-200 border border-slate-800 flex flex-col md:flex-row gap-10 items-center overflow-hidden relative">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
+                                    
+                                    <div className="w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-center text-white shrink-0 relative z-10">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-4 relative z-10">
+                                        <h3 className="text-3xl font-black text-white tracking-tight">Tooltips de Contexto</h3>
+                                        <p className="text-slate-300 font-medium text-lg leading-relaxed max-w-2xl">
+                                            A interface agora é mais inteligente. Os tooltips se adaptam à posição do botão para nunca ficarem fora da tela, garantindo que você sempre saiba o que cada botão faz.
+                                        </p>
+                                        <div className="pt-2 flex gap-3">
+                                            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-2xl border border-white/5 backdrop-blur-md">
+                                                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                                                <span className="text-xs font-black text-white/90">Smart Positioning</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

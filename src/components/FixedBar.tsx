@@ -7,14 +7,14 @@ import Modal from './Modal';
 import ProfileModal from './ProfileModal';
 
 export const FixedBar: React.FC = () => {
-    const { 
-        isEnabled, 
-        barBehavior, 
-        isBarOpen, 
-        setBarOpen, 
-        currentProfile, 
-        setCurrentProfile, 
-        addSiteToBlacklist, 
+    const {
+        isEnabled,
+        barBehavior,
+        isBarOpen,
+        setBarOpen,
+        currentProfile,
+        setCurrentProfile,
+        addSiteToBlacklist,
         blacklistedSites,
         profiles,
         addProfile,
@@ -22,7 +22,9 @@ export const FixedBar: React.FC = () => {
         deleteSiteData,
         toasts,
         showToast,
-        isLoading 
+        isLoading,
+        isFloatingEnabled,
+        setIsFloatingEnabled
     } = useAutofill();
     const [isNewSite, setIsNewSite] = useState(false);
     const [isSavedSite, setIsSavedSite] = useState(false);
@@ -40,19 +42,114 @@ export const FixedBar: React.FC = () => {
 
     // Push content down logic
     const [topOffset, setTopOffset] = useState(0);
+    const [floatingPos, setFloatingPos] = useState({
+        x: window.innerWidth - 68,
+        y: 80
+    });
+    const [isDragging, setIsDragging] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [originalPreOpenPos, setOriginalPreOpenPos] = useState<{ x: number, y: number } | null>(null);
+
+    const lastWindowSize = React.useRef({ w: window.innerWidth, h: window.innerHeight });
 
     useEffect(() => {
-        const isVisible = isEnabled && !blacklistedSites.includes(window.location.origin) && 
+        const loadPos = async () => {
+            const data = await browser.storage.local.get('floating_pos');
+            if (data.floating_pos) setFloatingPos(data.floating_pos);
+        };
+        loadPos();
+
+        const handleResize = () => {
+            setFloatingPos(prev => {
+                const newW = window.innerWidth;
+                const newH = window.innerHeight;
+                const oldW = lastWindowSize.current.w;
+                const oldH = lastWindowSize.current.h;
+
+                const deltaW = newW - oldW;
+                const deltaH = newH - oldH;
+
+                let newX = prev.x;
+                let newY = prev.y;
+
+                // If in right half, track the right edge
+                if (prev.x > oldW / 2) {
+                    newX = prev.x + deltaW;
+                }
+
+                // If in bottom half, track the bottom edge
+                if (prev.y > oldH / 2) {
+                    newY = prev.y + deltaH;
+                }
+
+                // Clamp to screen bounds
+                const maxX = newW - 60;
+                const maxY = newH - 72;
+                newX = Math.max(0, Math.min(maxX, newX));
+                newY = Math.max(0, Math.min(maxY, newY));
+
+                lastWindowSize.current = { w: newW, h: newH };
+                return { x: newX, y: newY };
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (isBarOpen) return;
+        setIsDragging(false);
+        setDragStart({ x: e.clientX - floatingPos.x, y: e.clientY - floatingPos.y });
+
+        const handleMouseMove = (mv: MouseEvent) => {
+            const maxX = window.innerWidth - 32;
+            const maxY = window.innerHeight - 32;
+            const newX = Math.max(0, Math.min(maxX, mv.clientX - dragStart.x));
+            const newY = Math.max(0, Math.min(maxY, mv.clientY - dragStart.y));
+
+            // Threshold to start dragging
+            if (Math.abs(mv.clientX - (dragStart.x + floatingPos.x)) > 5 ||
+                Math.abs(mv.clientY - (dragStart.y + floatingPos.y)) > 5) {
+                setIsDragging(true);
+            }
+
+            setFloatingPos({ x: newX, y: newY });
+        };
+
+        const handleMouseUp = (up: MouseEvent) => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+
+            if (isDragging) {
+                // Use the latest calculated position from the event to ensure accuracy
+                const maxX = window.innerWidth - 32;
+                const maxY = window.innerHeight - 32;
+                const finalX = Math.max(0, Math.min(maxX, up.clientX - dragStart.x));
+                const finalY = Math.max(0, Math.min(maxY, up.clientY - dragStart.y));
+                browser.storage.local.set({ floating_pos: { x: finalX, y: finalY } }).catch(() => {});
+
+                setOriginalPreOpenPos(null);
+            }
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    useEffect(() => {
+        const isVisible = isEnabled && !blacklistedSites.includes(window.location.origin) &&
                          (barBehavior === 'all' || isSavedSite);
-        
-        const BAR_HEIGHT = 56;
+
+        const BAR_HEIGHT = 50;
         const MOUNT_ID = 'autofill-extension-root';
 
         const adjustFixedElements = (show: boolean) => {
             // Find "Pre-Header" (like the Green LOCAL bar)
             const greenBar = document.querySelector('div.fixed.top-0.bg-green-600') as HTMLElement;
             const greenBarHeight = greenBar ? greenBar.offsetHeight : 0;
-            
+
             if (show) setTopOffset(greenBarHeight);
             else setTopOffset(0);
 
@@ -62,7 +159,7 @@ export const FixedBar: React.FC = () => {
             elements.forEach(el => {
                 const htmlEl = el as HTMLElement;
                 if (htmlEl.id === MOUNT_ID || htmlEl.closest(`#${MOUNT_ID}`)) return;
-                
+
                 // Don't shift the green bar itself if it's supposed to stay at top 0
                 if (htmlEl === greenBar) return;
 
@@ -70,7 +167,7 @@ export const FixedBar: React.FC = () => {
                 if (style.position === 'fixed') {
                     const topValue = style.top;
                     const isAtTop = topValue === '0px' || topValue === '0' || topValue === 'auto';
-                    
+
                     if (show && isAtTop) {
                         if (!htmlEl.dataset.autofillShifted || htmlEl.dataset.currentOffset !== String(totalOffset)) {
                             if (!htmlEl.dataset.autofillShifted) {
@@ -210,16 +307,121 @@ export const FixedBar: React.FC = () => {
     };
 
     if (!isBarOpen) {
-        return (
-            <div 
-                onClick={() => setBarOpen(true)}
-                style={{ top: `${topOffset + 8}px` }}
-                className="fixed left-2 w-10 h-10 bg-indigo-600 rounded-lg shadow-lg cursor-pointer flex items-center justify-center hover:bg-indigo-700 transition-all z-999999 animate-in fade-in zoom-in duration-300"
-                title="Abrir AutoFill"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        if (!isFloatingEnabled) return null;
+        const menuActions = [
+            { icon: (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                 </svg>
+            ), label: 'Expandir', action: () => setBarOpen(true) },
+            { icon: (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+            ), label: 'Salvar', action: handleSave },
+            { icon: (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+            ), label: 'Preencher', action: handleFill },
+            { icon: (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+            ), label: 'Bloquear', action: () => addSiteToBlacklist(window.location.origin) },
+            { icon: (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            ), label: 'Desativar', action: async () => {
+                await setIsFloatingEnabled(false);
+                showToast('Botão flutuante desativado', 'error');
+            } }
+        ];
+
+        return (
+            <div
+                style={{
+                    left: `${floatingPos.x}px`,
+                    top: `${floatingPos.y}px`,
+                    position: 'fixed',
+                    zIndex: 999999
+                }}
+                className="select-none"
+            >
+                {/* Radial Items */}
+                {isMenuOpen && menuActions.map((item, i) => {
+                    const angle = (i * (360 / menuActions.length)) - 90;
+                    const radius = 50;
+                    const x = Math.cos(angle * Math.PI / 180) * radius;
+                    const y = Math.sin(angle * Math.PI / 180) * radius;
+
+                    return (
+                        <div
+                            key={i}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                item.action();
+                                setIsMenuOpen(false);
+                            }}
+                            style={{
+                                transform: `translate(${x}px, ${y}px)`,
+                                transitionDelay: `${i * 50}ms`
+                            }}
+                            className="absolute left-0 top-0 w-8 h-8 bg-slate-800 border border-white/10 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-indigo-600 hover:scale-110 transition-all shadow-xl animate-in fade-in zoom-in duration-300 group"
+                            title={item.label}
+                        >
+                            {item.icon}
+                            <span className={`absolute ${[2, 3].includes(i) ? '-bottom-8' : '-top-8'} left-1/2 -translate-x-1/2 bg-slate-900/95 text-[11px] font-bold px-2.5 py-1 rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 border border-white/5 pointer-events-none`}>
+                                {item.label}
+                            </span>
+                        </div>
+                    );
+                })}
+
+                {/* Main Floating Button */}
+                <div
+                    onMouseDown={handleMouseDown}
+                    onClick={() => {
+                        if (isDragging) return;
+
+                        const nextState = !isMenuOpen;
+                        if (nextState) {
+                            // Edge Detection: shift button if menu would be cut off
+                            const PADDING = 100;
+                            const newX = Math.max(PADDING, Math.min(window.innerWidth - PADDING, floatingPos.x));
+                            const newY = Math.max(PADDING, Math.min(window.innerHeight - PADDING, floatingPos.y));
+
+                            if (newX !== floatingPos.x || newY !== floatingPos.y) {
+                                setOriginalPreOpenPos(floatingPos);
+                                setFloatingPos({ x: newX, y: newY });
+                                browser.storage.local.set({ floating_pos: { x: newX, y: newY } }).catch(() => {});
+                            } else {
+                                setOriginalPreOpenPos(null);
+                            }
+                        } else {
+                            // Returning logic: if we shifted it to open the menu, return it when closing
+                            if (originalPreOpenPos) {
+                                setFloatingPos(originalPreOpenPos);
+                                browser.storage.local.set({ floating_pos: originalPreOpenPos }).catch(() => {});
+                                setOriginalPreOpenPos(null);
+                            }
+                        }
+                        setIsMenuOpen(nextState);
+                    }}
+                    className={`w-8 h-8 bg-indigo-600 rounded-lg shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center hover:bg-indigo-700 transition-all z-10 animate-in fade-in zoom-in duration-300 ${isMenuOpen ? 'rotate-90 scale-110' : ''}`}
+                    title="Menu AutoFill"
+                >
+                    {isMenuOpen ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    )}
+                </div>
             </div>
         );
     }
@@ -227,12 +429,16 @@ export const FixedBar: React.FC = () => {
     return (
         <>
             {/* Fixed Top Bar */}
-            <div 
+            <div
                 style={{ top: `${topOffset}px` }}
-                className="fixed left-0 w-full bg-slate-900 text-white h-14 flex items-center px-4 shadow-xl z-999999 border-b border-white/10 animate-in slide-in-from-top duration-300"
+                className="fixed left-0 w-full bg-slate-900 text-white h-[50px] flex items-center px-4 shadow-xl z-999999 border-b border-white/10 animate-in slide-in-from-top duration-300"
             >
-                <div className="flex items-center gap-3">
-                    <div className="bg-indigo-600 p-1.5 rounded-md shadow-lg shadow-indigo-500/20">
+                <div
+                    onClick={() => setBarOpen(false)}
+                    className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-all shrink-0"
+                    title="Fechar AutoFill"
+                >
+                    <div className="bg-indigo-600 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
@@ -247,7 +453,7 @@ export const FixedBar: React.FC = () => {
                         <div className="flex items-center gap-2">
                             {isSavedSite && (
                                 <div className="flex items-center">
-                                    <button 
+                                    <button
                                         onClick={handleFill}
                                         className="px-4 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md text-xs font-semibold transition-all flex items-center gap-2  cursor-pointer border-r border-white/10"
                                     >
@@ -256,7 +462,7 @@ export const FixedBar: React.FC = () => {
                                         </svg>
                                         Preencher
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={handleDeleteSaved}
                                         className="px-3 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-r-md text-xs transition-all flex items-center justify-center shadow-sm cursor-pointer"
                                         title="Remover dados salvos"
@@ -268,14 +474,14 @@ export const FixedBar: React.FC = () => {
                                 </div>
                             )}
 
-                            <button 
+                            <button
                                 onClick={handleSave}
-                                className="px-4 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+                                className="px-3 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[10px] font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
                                 </svg>
-                                {isSavedSite ? 'Atualizar site' : 'Salvar site'}
+                                {isSavedSite ? 'Atualizar' : 'Salvar'}
                             </button>
                         </div>
                     )}
@@ -283,10 +489,10 @@ export const FixedBar: React.FC = () => {
                     <div className="flex items-center gap-2 ml-4">
                         <span className="text-[10px] text-white/30 font-semibold uppercase tracking-widest">Perfil</span>
                         <div className="flex items-center">
-                            <select 
+                            <select
                                 value={currentProfile}
                                 onChange={handleProfileChange}
-                                className={`bg-slate-800 border border-white/10 text-white text-xs h-9 outline-none focus:ring-1 focus:ring-indigo-500 transition-all hover:bg-slate-700 cursor-pointer font-semibold ${currentProfile === 'Padrão' ? 'rounded-md pl-4 pr-10' : 'rounded-l-md px-3 border-r-0'}`}
+                                className={`bg-slate-800 border border-white/10 text-white text-[10px] h-7 outline-none focus:ring-1 focus:ring-indigo-500 transition-all hover:bg-slate-700 cursor-pointer font-bold ${currentProfile === 'Padrão' ? 'rounded-md pl-3 pr-8' : 'rounded-l-md px-2 border-r-0'}`}
                             >
                                 {profiles.map(p => (
                                     <option key={p} value={p}>{p}</option>
@@ -294,12 +500,12 @@ export const FixedBar: React.FC = () => {
                                 <option value="__add_profile__" className="text-indigo-400 font-medium">+ Novo Perfil</option>
                             </select>
                             {currentProfile !== 'Padrão' && (
-                                <button 
+                                <button
                                     onClick={handleDeleteCurrentProfile}
-                                    className="px-3 h-9 bg-slate-800 hover:bg-rose-900/50 text-rose-400 border border-white/10 rounded-r-md transition-all cursor-pointer border-l-0"
+                                    className="px-2 h-7 bg-slate-800 hover:bg-rose-900/50 text-rose-400 border border-white/10 rounded-r-md transition-all cursor-pointer border-l-0"
                                     title="Excluir perfil"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
@@ -309,7 +515,7 @@ export const FixedBar: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button 
+                    <button
                         onClick={() => {
                             addSiteToBlacklist(window.location.origin);
                             showToast('Site bloqueado!', 'success');
@@ -318,7 +524,7 @@ export const FixedBar: React.FC = () => {
                     >
                         Blacklist
                     </button>
-                    <button 
+                    <button
                         onClick={() => browser.runtime.sendMessage({ action: 'open_options' })}
                         className="p-2 text-white/30 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer"
                         title="Configurações"
@@ -328,7 +534,7 @@ export const FixedBar: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setBarOpen(false)}
                         className="p-2 text-white/30 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                         title="Fechar"
@@ -343,7 +549,7 @@ export const FixedBar: React.FC = () => {
             {/* Side Toasts */}
             <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-999999">
                 {toasts.map(toast => (
-                    <div 
+                    <div
                         key={toast.id}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl animate-in slide-in-from-right-5 duration-300 border border-white/10 ${
                             toast.type === 'success' ? 'bg-emerald-600 text-white shadow-emerald-900/40' : 'bg-rose-600 text-white shadow-rose-900/40'
@@ -365,7 +571,7 @@ export const FixedBar: React.FC = () => {
                 ))}
             </div>
 
-            <ProfileModal 
+            <ProfileModal
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
                 onSave={(name) => {
@@ -376,7 +582,7 @@ export const FixedBar: React.FC = () => {
                 isPopover={true}
             />
 
-            <Modal 
+            <Modal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                 title={confirmModal.title}
