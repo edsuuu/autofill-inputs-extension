@@ -27,7 +27,7 @@ async function init() {
 
     const rootElement = document.createElement('div');
     shadow.appendChild(rootElement);
-    document.body.appendChild(container);
+    document.body.prepend(container);
 
     const root = createRoot(rootElement);
     root.render(

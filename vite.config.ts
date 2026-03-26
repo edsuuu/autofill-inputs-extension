@@ -20,10 +20,6 @@ export default defineConfig({
         react(),
         webExtension({
             manifest: generateManifest,
-            webExtConfig: {
-                chromiumBinary: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-                target: "chromium",
-            },
         }),
         tailwindcss(),
     ]

@@ -39,19 +39,77 @@ export const FixedBar: React.FC = () => {
     });
 
     // Push content down logic
+    const [topOffset, setTopOffset] = useState(0);
+
     useEffect(() => {
         const isVisible = isEnabled && !blacklistedSites.includes(window.location.origin) && 
                          (barBehavior === 'all' || isSavedSite);
         
+        const BAR_HEIGHT = 56;
+        const MOUNT_ID = 'autofill-extension-root';
+
+        const adjustFixedElements = (show: boolean) => {
+            // Find "Pre-Header" (like the Green LOCAL bar)
+            const greenBar = document.querySelector('div.fixed.top-0.bg-green-600') as HTMLElement;
+            const greenBarHeight = greenBar ? greenBar.offsetHeight : 0;
+            
+            if (show) setTopOffset(greenBarHeight);
+            else setTopOffset(0);
+
+            const totalOffset = show ? (BAR_HEIGHT + greenBarHeight) : 0;
+
+            const elements = document.querySelectorAll('*');
+            elements.forEach(el => {
+                const htmlEl = el as HTMLElement;
+                if (htmlEl.id === MOUNT_ID || htmlEl.closest(`#${MOUNT_ID}`)) return;
+                
+                // Don't shift the green bar itself if it's supposed to stay at top 0
+                if (htmlEl === greenBar) return;
+
+                const style = window.getComputedStyle(htmlEl);
+                if (style.position === 'fixed') {
+                    const topValue = style.top;
+                    const isAtTop = topValue === '0px' || topValue === '0' || topValue === 'auto';
+                    
+                    if (show && isAtTop) {
+                        if (!htmlEl.dataset.autofillShifted || htmlEl.dataset.currentOffset !== String(totalOffset)) {
+                            if (!htmlEl.dataset.autofillShifted) {
+                                htmlEl.dataset.originalTop = topValue;
+                                htmlEl.dataset.autofillShifted = 'true';
+                            }
+                            htmlEl.dataset.currentOffset = String(totalOffset);
+                            htmlEl.style.transition = 'top 0.2s ease-in-out, margin-top 0.2s ease-in-out';
+                            htmlEl.style.top = `${totalOffset}px`;
+                        }
+                    } else if (!show && htmlEl.dataset.autofillShifted) {
+                        htmlEl.style.top = htmlEl.dataset.originalTop === 'auto' ? '' : htmlEl.dataset.originalTop || '';
+                        delete htmlEl.dataset.originalTop;
+                        delete htmlEl.dataset.autofillShifted;
+                        delete htmlEl.dataset.currentOffset;
+                    }
+                }
+            });
+
+            return totalOffset;
+        };
+
+        const observer = new MutationObserver(() => {
+            if (isVisible && isBarOpen) {
+                adjustFixedElements(true);
+            }
+        });
+
         if (isVisible && isBarOpen) {
+            const finalOffset = adjustFixedElements(true);
             document.body.style.transition = 'padding-top 0.2s ease-in-out';
-            document.body.style.paddingTop = '56px';
+            document.body.style.paddingTop = `${finalOffset}px`;
+            observer.observe(document.body, { childList: true, subtree: true });
         } else {
             document.body.style.paddingTop = '';
-            // Only remove transition if we were the ones who set it
             if (document.body.style.transition.includes('padding-top')) {
                 document.body.style.transition = '';
             }
+            adjustFixedElements(false);
         }
 
         return () => {
@@ -59,6 +117,8 @@ export const FixedBar: React.FC = () => {
             if (document.body.style.transition.includes('padding-top')) {
                 document.body.style.transition = '';
             }
+            adjustFixedElements(false);
+            observer.disconnect();
         };
     }, [isBarOpen, isEnabled, blacklistedSites, barBehavior, isSavedSite]);
 
@@ -153,7 +213,8 @@ export const FixedBar: React.FC = () => {
         return (
             <div 
                 onClick={() => setBarOpen(true)}
-                className="fixed top-2 left-2 w-10 h-10 bg-indigo-600 rounded-lg shadow-lg cursor-pointer flex items-center justify-center hover:bg-indigo-700 transition-all z-999999 animate-in fade-in zoom-in duration-300"
+                style={{ top: `${topOffset + 8}px` }}
+                className="fixed left-2 w-10 h-10 bg-indigo-600 rounded-lg shadow-lg cursor-pointer flex items-center justify-center hover:bg-indigo-700 transition-all z-999999 animate-in fade-in zoom-in duration-300"
                 title="Abrir AutoFill"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,7 +227,10 @@ export const FixedBar: React.FC = () => {
     return (
         <>
             {/* Fixed Top Bar */}
-            <div className="fixed top-0 left-0 w-full bg-slate-900 text-white h-14 flex items-center px-4 shadow-xl z-999999 border-b border-white/10 animate-in slide-in-from-top duration-300">
+            <div 
+                style={{ top: `${topOffset}px` }}
+                className="fixed left-0 w-full bg-slate-900 text-white h-14 flex items-center px-4 shadow-xl z-999999 border-b border-white/10 animate-in slide-in-from-top duration-300"
+            >
                 <div className="flex items-center gap-3">
                     <div className="bg-indigo-600 p-1.5 rounded-md shadow-lg shadow-indigo-500/20">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
