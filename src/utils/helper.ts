@@ -1,6 +1,4 @@
-import { fakerPT_BR as faker } from '@faker-js/faker';
-
-export { faker };
+// Faker moved to background script to reduce content script size
 
 export interface FormField {
     name?: string;

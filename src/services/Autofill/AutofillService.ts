@@ -1,6 +1,7 @@
+import browser from 'webextension-polyfill';
 import { AutofillMatcher } from './AutofillMatcher';
 import { AutofillSaver } from './AutofillSaver';
-import { FormField, faker } from '../../utils/helper';
+import { FormField } from '../../utils/helper';
 
 export class AutofillService {
     private static lastFilledValues = new Map<string, string>();
@@ -19,7 +20,7 @@ export class AutofillService {
 
         const fields = await AutofillSaver.getFieldsForUrl(url, activeProfile);
         if (!fields || fields.length === 0) return;
-        fields.forEach((field: FormField) => {
+        for (const field of fields) {
             let elements: (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)[] = [];
             
             if (field.id) {
@@ -47,24 +48,24 @@ export class AutofillService {
                 }
             }
 
-            if (elements.length === 0) return;
+            if (elements.length === 0) continue;
 
-            elements.forEach((el) => {
+            for (const el of elements) {
                 if (field.type && el.type !== field.type && field.type !== 'text') {
                     if ((field.type === 'checkbox' || field.type === 'radio') && el.type !== field.type) {
-                        return;
+                        continue;
                     }
                 }
 
                 if (automatic) {
                     if (el.type !== 'checkbox' && el.type !== 'radio' && el.value) {
-                        return;
+                        continue;
                     }
                 }
 
                 let valueToSet = field.value;
                 if (field.fakerType) {
-                    valueToSet = this.generateFakerValue(field.fakerType);
+                    valueToSet = await this.generateFakerValue(field.fakerType);
                 } else if (field.useUuid) {
                     valueToSet = this.generateUuid();
                 }
@@ -73,8 +74,8 @@ export class AutofillService {
                 this.lastFilledValues.set(this.createKey(field), String(valueToSet));
 
                 this.setElementValue(el, valueToSet);
-            });
-        });
+            }
+        }
     }
 
     public static async captureAndSave(url: string, profile: string = 'Padrão'): Promise<{ success: boolean; message: string; count?: number }> {
@@ -106,9 +107,9 @@ export class AutofillService {
         if (fields.length === 0) return { success: false, message: 'Nenhum campo detectado!' };
 
         // Fill immediately with guessed values
-        fields.forEach(field => {
+        for (const field of fields) {
             let value = field.value;
-            if (field.fakerType) value = this.generateFakerValue(field.fakerType);
+            if (field.fakerType) value = await this.generateFakerValue(field.fakerType);
             
             let selector = "";
             if (field.name) selector += `[name="${field.name}"]`;
@@ -116,7 +117,7 @@ export class AutofillService {
             
             const elements = document.querySelectorAll(selector) as NodeListOf<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
             elements.forEach(el => this.setElementValue(el, value));
-        });
+        }
 
         // Save structure
         await AutofillSaver.saveFieldsForUrl(url, fields, profile);
@@ -254,23 +255,16 @@ export class AutofillService {
         return crypto.randomUUID();
     }
 
-    private static generateFakerValue(type: string): string {
+    private static async generateFakerValue(type: string): Promise<string> {
         try {
-            switch (type) {
-                case 'name': return faker.person.fullName();
-                case 'firstName': return faker.person.firstName();
-                case 'lastName': return faker.person.lastName();
-                case 'email': return faker.internet.email();
-                case 'cep': return faker.location.zipCode();
-                case 'cnpj': return this.generateCNPJ();
-                case 'cpf': return this.generateCPF();
-                case 'phone': return faker.phone.number();
-                case 'company': return faker.company.name();
-                case 'city': return faker.location.city();
-                case 'state': return faker.location.state();
-                default: return faker.lorem.word();
-            }
-        } catch {
+            // CPF and CNPJ are handled locally to avoid unnecessary message overhead if they don't need Faker
+            if (type === 'cpf') return this.generateCPF();
+            if (type === 'cnpj') return this.generateCNPJ();
+
+            // All other faker types are handled by the background script to keep content script size small
+            return await browser.runtime.sendMessage({ action: 'GENERATE_FAKER_VALUE', type });
+        } catch (error) {
+            console.error('[AutoFill] Error generating faker value:', error);
             return "Error";
         }
     }
