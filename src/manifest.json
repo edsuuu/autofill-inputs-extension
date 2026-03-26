@@ -3,7 +3,7 @@
     "{{firefox}}.manifest_version": 2,
     "name": "AutoFill",
     "description": "AutoFill inputs in all page with forms.",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "permissions": [
         "storage",
         "scripting",

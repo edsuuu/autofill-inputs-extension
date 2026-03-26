@@ -9,7 +9,7 @@ export default function WhatIsNew() {
         {
             version: "2",
             date: "25 de Março, 2026",
-            title: "Bem-vindo ao AutoFill Pro V2",
+            title: "Bem-vindo ao AutoFill",
             description: "A barra de ferramentas foi totalmente reinventada. Mais rápida, elegante e poderosa do que nunca.",
             icon: (
                 <div className="w-20 h-20 bg-indigo-600 rounded-3xl shadow-xl shadow-indigo-100 flex items-center justify-center text-white">
@@ -69,7 +69,7 @@ export default function WhatIsNew() {
                 <div className="flex justify-center h-24 items-center">
                     {currentStep.icon}
                 </div>
-                
+
                 <div className="space-y-3">
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">{currentStep.title}</h2>
                     <p className="text-slate-500 font-medium leading-relaxed">{currentStep.description}</p>
@@ -83,14 +83,14 @@ export default function WhatIsNew() {
 
                 <div className="flex gap-4">
                     {step > 1 && (
-                        <button 
+                        <button
                             onClick={() => setStep(step - 1)}
                             className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded-2xl transition-all active:scale-95"
                         >
                             Voltar
                         </button>
                     )}
-                    <button 
+                    <button
                         onClick={() => step < steps.length ? setStep(step + 1) : navigate('/')}
                         className="flex-2 py-4 bg-indigo-600 hover:bg-slate-900 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2 group cursor-pointer"
                     >
