@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import browser from 'webextension-polyfill';
 import { useAutofill } from '../context/AutofillContext';
 import { AutofillService } from '../services/Autofill/AutofillService';
@@ -46,9 +46,9 @@ export const FixedBar: React.FC = () => {
         x: window.innerWidth - 68,
         y: 80
     });
-    const [isDragging, setIsDragging] = useState(false);
+    const isDraggingRef = useRef(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const dragStartRef = useRef({ x: 0, y: 0 });
     const [originalPreOpenPos, setOriginalPreOpenPos] = useState<{ x: number, y: number } | null>(null);
 
     const lastWindowSize = React.useRef({ w: window.innerWidth, h: window.innerHeight });
@@ -100,19 +100,21 @@ export const FixedBar: React.FC = () => {
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (isBarOpen) return;
-        setIsDragging(false);
-        setDragStart({ x: e.clientX - floatingPos.x, y: e.clientY - floatingPos.y });
+        isDraggingRef.current = false;
+        dragStartRef.current = { x: e.clientX - floatingPos.x, y: e.clientY - floatingPos.y };
 
         const handleMouseMove = (mv: MouseEvent) => {
             const maxX = window.innerWidth - 32;
             const maxY = window.innerHeight - 32;
-            const newX = Math.max(0, Math.min(maxX, mv.clientX - dragStart.x));
-            const newY = Math.max(0, Math.min(maxY, mv.clientY - dragStart.y));
+            const newX = Math.max(0, Math.min(maxX, mv.clientX - dragStartRef.current.x));
+            const newY = Math.max(0, Math.min(maxY, mv.clientY - dragStartRef.current.y));
 
             // Threshold to start dragging
-            if (Math.abs(mv.clientX - (dragStart.x + floatingPos.x)) > 5 ||
-                Math.abs(mv.clientY - (dragStart.y + floatingPos.y)) > 5) {
-                setIsDragging(true);
+            if (!isDraggingRef.current && (
+                Math.abs(mv.clientX - (dragStartRef.current.x + floatingPos.x)) > 5 ||
+                Math.abs(mv.clientY - (dragStartRef.current.y + floatingPos.y)) > 5
+            )) {
+                isDraggingRef.current = true;
             }
 
             setFloatingPos({ x: newX, y: newY });
@@ -122,14 +124,12 @@ export const FixedBar: React.FC = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
 
-            if (isDragging) {
-                // Use the latest calculated position from the event to ensure accuracy
+            if (isDraggingRef.current) {
                 const maxX = window.innerWidth - 32;
                 const maxY = window.innerHeight - 32;
-                const finalX = Math.max(0, Math.min(maxX, up.clientX - dragStart.x));
-                const finalY = Math.max(0, Math.min(maxY, up.clientY - dragStart.y));
+                const finalX = Math.max(0, Math.min(maxX, up.clientX - dragStartRef.current.x));
+                const finalY = Math.max(0, Math.min(maxY, up.clientY - dragStartRef.current.y));
                 browser.storage.local.set({ floating_pos: { x: finalX, y: finalY } }).catch(() => {});
-
                 setOriginalPreOpenPos(null);
             }
         };
@@ -146,22 +146,22 @@ export const FixedBar: React.FC = () => {
         const MOUNT_ID = 'autofill-extension-root';
 
         const adjustFixedElements = (show: boolean) => {
-            // Find "Pre-Header" (like the Green LOCAL bar)
-            const greenBar = document.querySelector('div.fixed.top-0.bg-green-600') as HTMLElement;
-            const greenBarHeight = greenBar ? greenBar.offsetHeight : 0;
+            // Find "Pre-Header" environment flags (Local, Develop, Homolog, Sandbox)
+            const envBar = document.querySelector('div.fixed.top-0.left-0.w-full.py-2') as HTMLElement;
+            const envBarHeight = envBar ? envBar.offsetHeight : 0;
 
-            if (show) setTopOffset(greenBarHeight);
+            if (show) setTopOffset(envBarHeight);
             else setTopOffset(0);
 
-            const totalOffset = show ? (BAR_HEIGHT + greenBarHeight) : 0;
+            const totalOffset = show ? (BAR_HEIGHT + envBarHeight) : 0;
 
             const elements = document.querySelectorAll('*');
             elements.forEach(el => {
                 const htmlEl = el as HTMLElement;
                 if (htmlEl.id === MOUNT_ID || htmlEl.closest(`#${MOUNT_ID}`)) return;
 
-                // Don't shift the green bar itself if it's supposed to stay at top 0
-                if (htmlEl === greenBar) return;
+                // Don't shift the environment bar itself
+                if (htmlEl === envBar) return;
 
                 const style = window.getComputedStyle(htmlEl);
                 if (style.position === 'fixed') {
@@ -383,7 +383,7 @@ export const FixedBar: React.FC = () => {
                 <div
                     onMouseDown={handleMouseDown}
                     onClick={() => {
-                        if (isDragging) return;
+                        if (isDraggingRef.current) return;
 
                         const nextState = !isMenuOpen;
                         if (nextState) {
