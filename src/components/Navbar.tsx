@@ -31,16 +31,6 @@ export default function Navbar() {
                             Formulários
                         </Link>
                         <Link
-                            to="/como-usar"
-                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                isActive('/como-usar')
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
-                        >
-                            Como Usar
-                        </Link>
-                        <Link
                             to="/configuracoes"
                             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                                 isActive('/configuracoes')

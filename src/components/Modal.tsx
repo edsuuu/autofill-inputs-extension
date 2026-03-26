@@ -9,9 +9,22 @@ interface ModalProps {
     onConfirm?: () => void;
     confirmText?: string;
     cancelText?: string;
+    isPopover?: boolean;
+    anchorRight?: boolean;
 }
 
-export default function Modal({ isOpen, onClose, title, message, type = 'info', onConfirm, confirmText = 'Confirmar', cancelText = 'Cancelar' }: ModalProps) {
+export default function Modal({ 
+    isOpen, 
+    onClose, 
+    title, 
+    message, 
+    type = 'info', 
+    onConfirm, 
+    confirmText = 'Confirmar', 
+    cancelText = 'Cancelar',
+    isPopover = false,
+    anchorRight = false
+}: ModalProps) {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -92,27 +105,30 @@ export default function Modal({ isOpen, onClose, title, message, type = 'info', 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 bg-opacity-50 p-4" onClick={handleBackdropClick}>
-            <div className={`bg-white rounded-lg shadow-xl max-w-md w-full ${getColorClasses()} border-2`}>
+        <div className={`fixed inset-0 z-1000000 flex ${isPopover ? 'items-start pt-16' : 'items-center'} justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200`} onClick={handleBackdropClick}>
+            <div className={`bg-white rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 animate-in zoom-in-95 slide-in-from-top-4 duration-200`}>
                 <div className="p-6">
                     <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0">{getIcon()}</div>
+                        <div className="shrink-0">{getIcon()}</div>
                         <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-                            <p className="text-sm text-gray-700 whitespace-pre-wrap break-all">{message}</p>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+                            <p className="text-xs text-slate-400 font-medium whitespace-pre-wrap break-all">{message}</p>
                         </div>
                         {type !== 'confirm' && (
-                            <button onClick={onClose} className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
+                            <button onClick={onClose} className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         )}
                     </div>
-                    <div className="mt-6 flex justify-end gap-3">
+                    <div className="mt-8 flex justify-end gap-3">
                         {type === 'confirm' && (
                             <>
-                                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors cursor-pointer">
+                                <button 
+                                    onClick={onClose} 
+                                    className="flex-1 py-3 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 transition-all rounded-xl cursor-pointer"
+                                >
                                     {cancelText}
                                 </button>
                                 <button
@@ -120,14 +136,17 @@ export default function Modal({ isOpen, onClose, title, message, type = 'info', 
                                         if (onConfirm) onConfirm();
                                         onClose();
                                     }}
-                                    className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors cursor-pointer ${getButtonClasses()}`}
+                                    className={`flex-1 py-3 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all cursor-pointer ${getButtonClasses()}`}
                                 >
                                     {confirmText}
                                 </button>
                             </>
                         )}
                         {type !== 'confirm' && (
-                            <button onClick={onClose} className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors cursor-pointer ${getButtonClasses()}`}>
+                            <button 
+                                onClick={onClose} 
+                                className={`w-full py-3 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all cursor-pointer ${getButtonClasses()}`}
+                            >
                                 OK
                             </button>
                         )}

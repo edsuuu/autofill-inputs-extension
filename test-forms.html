@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Página de Teste - Auto Preenchimento</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f3f4f6;
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
+            h1 {
+                color: #1f2937;
+            }
+            h2 {
+                color: #374151;
+                border-bottom: 1px solid #e5e7eb;
+                padding-bottom: 10px;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: 500;
+                color: #4b5563;
+            }
+            input[type='text'],
+            input[type='email'],
+            input[type='password'],
+            select,
+            textarea {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+            .hint {
+                font-size: 0.85em;
+                color: #6b7280;
+                margin-top: 4px;
+            }
+            .status {
+                padding: 10px;
+                background: #e0f2fe;
+                color: #0369a1;
+                border-radius: 4px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🧪 Bench de Teste - Auto Preenchimento</h1>
+
+        <div class="status">
+            <strong>Instruções:</strong> Use esta página para validar se a extensão está capturando e preenchendo os campos corretamente.
+            <ol>
+                <li>Digite valores nos campos abaixo.</li>
+                <li>Clique no ícone da extensão ou no botão flutuante e escolha <strong>"Salvar"</strong>.</li>
+                <li>Recarregue a página (F5).</li>
+                <li>Clique em <strong>"Preencher"</strong> (ou verifique o preenchimento automático se ativado).</li>
+            </ol>
+        </div>
+
+        <form onsubmit="event.preventDefault();">
+            <!-- Text Inputs -->
+            <div class="card">
+                <h2>Dados Pessoais</h2>
+                <div class="form-group">
+                    <label for="full_name">Nome Completo (ID safe)</label>
+                    <input type="text" id="full_name" name="name" placeholder="Ex: João da Silva" />
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Ex: joao@email.com" />
+                </div>
+                <div class="form-group">
+                    <label for="job_title">Cargo (apenas name)</label>
+                    <input type="text" name="jobTitle" placeholder="Ex: Desenvolvedor" />
+                </div>
+            </div>
+
+            <!-- Selects & Radios -->
+            <div class="card">
+                <h2>Preferências</h2>
+                <div class="form-group">
+                    <label for="country">País (Select)</label>
+                    <select id="country" name="country">
+                        <option value="">Selecione...</option>
+                        <option value="BR">Brasil</option>
+                        <option value="US">Estados Unidos</option>
+                        <option value="PT">Portugal</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Gênero (Radio)</label>
+                    <div>
+                        <label style="display: inline; margin-right: 15px"><input type="radio" name="gender" value="male" /> Masculino</label>
+                        <label style="display: inline; margin-right: 15px"><input type="radio" name="gender" value="female" /> Feminino</label>
+                        <label style="display: inline"><input type="radio" name="gender" value="other" /> Outro</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Opções (Checkbox)</label>
+                    <div>
+                        <label style="display: inline; margin-right: 15px"><input type="checkbox" name="newsletter" id="newsletter" /> Receber newsletter</label>
+                        <label style="display: inline"><input type="checkbox" name="terms" id="terms" /> Aceitar termos</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Fields -->
+            <div class="card">
+                <h2>Informações Adicionais</h2>
+                <div class="form-group">
+                    <label for="birth_date">Data de Nascimento</label>
+                    <input type="date" id="birth_date" name="birthday" />
+                </div>
+                <div class="form-group">
+                    <label for="bio">Biografia (Textarea)</label>
+                    <textarea id="bio" name="bio" rows="4" placeholder="Conte um pouco sobre você..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="satisfaction">Nível de Satisfação (Range)</label>
+                    <input type="range" id="satisfaction" name="satisfaction" min="0" max="10" />
+                </div>
+                <div class="form-group">
+                    <label for="fav_color">Cor Favorita</label>
+                    <input type="color" id="fav_color" name="favColor" value="#4f46e5" />
+                </div>
+            </div>
+
+            <!-- Multi-Select Checkboxes -->
+            <div class="card">
+                <h2>Interesses (Multi-Checkbox)</h2>
+                <div class="form-group">
+                    <label><input type="checkbox" name="interests" value="tech" /> Tecnologia</label>
+                    <label><input type="checkbox" name="interests" value="music" /> Música</label>
+                    <label><input type="checkbox" name="interests" value="sports" /> Esportes</label>
+                    <label><input type="checkbox" name="interests" value="travel" /> Viagens</label>
+                </div>
+            </div>
+
+            <!-- Ignored Fields -->
+            <div class="card">
+                <h2>Campos Ignorados (Teste Negativo)</h2>
+                <p class="hint">Estes campos NÃO devem ser salvos/preenchidos.</p>
+                <div class="form-group">
+                    <label for="search_query">Busca (name="search")</label>
+                    <input type="text" id="search_query" name="search" placeholder="Deve ser ignorado..." />
+                </div>
+                <div class="form-group">
+                    <label for="token_field">Token (name="token")</label>
+                    <input type="text" id="token_field" name="token_auth" placeholder="Deve ser ignorado..." />
+                </div>
+                <input type="hidden" name="hidden_id" value="12345" />
+            </div>
+        </form>
+    </body>
+</html>

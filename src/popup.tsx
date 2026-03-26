@@ -4,8 +4,12 @@ import ReactDOM from "react-dom/client";
 import Popup from "./pages/Popup";
 import './global.css';
 
+import { AutofillProvider } from "./context/AutofillContext";
+
 ReactDOM.createRoot(document.body).render(
     <React.StrictMode>
-        <Popup />
+        <AutofillProvider>
+            <Popup />
+        </AutofillProvider>
     </React.StrictMode>
 );

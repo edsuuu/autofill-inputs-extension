@@ -1,34 +1,28 @@
-/* eslint-disable import/no-unresolved */
-import { Helper } from './helper';
+import browser from 'webextension-polyfill';
+import { AutofillService } from '../services/Autofill/AutofillService';
 
 (async function () {
-    // Aguardar o DOM estar pronto e tentar múltiplas vezes
-    const tryAutoFill = async (attempts = 10, delay = 300) => {
-        for (let i = 0; i < attempts; i++) {
-            try {
-                // Verificar se encontrou campos antes de tentar preencher
-                const fields = await Helper.getFieldsForUrl(window.location.href);
+    let isFilling = false;
+    let debounceTimer: any = null;
 
-                if (fields && fields.length > 0) {
-                    // Se encontrou campos, aguardar um pouco mais e executar
-                    await new Promise(resolve => setTimeout(resolve, delay));
-
-                    const helper = new Helper(true, window.location.href);
-                    await helper.autoFill(window.location.href, true);
-                    return;
-                }
-            } catch (error) {
-                console.error('Erro ao tentar preenchimento automático:', error);
-            }
-
-            // Aguardar antes da próxima tentativa
-            if (i < attempts - 1) {
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
+    const tryAutoFill = async () => {
+        if (isFilling) return;
+        isFilling = true;
+        try {
+            // One attempt per trigger is enough with MutationObserver.
+            await AutofillService.fillForm(window.location.href, true);
+        } catch (error) {
+            console.error('Erro ao tentar preenchimento automático:', error);
+        } finally {
+            isFilling = false;
         }
     };
 
-    // Tentar imediatamente se o DOM já estiver pronto
+    const triggerFill = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => tryAutoFill(), 500);
+    };
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => tryAutoFill(), 500);
@@ -37,21 +31,16 @@ import { Helper } from './helper';
         setTimeout(() => tryAutoFill(), 500);
     }
 
-    // Também tentar quando a URL mudar (para SPAs)
     let lastUrl = window.location.href;
-    const checkUrlChange = () => {
+    setInterval(() => {
         if (window.location.href !== lastUrl) {
             lastUrl = window.location.href;
-            setTimeout(() => tryAutoFill(), 500);
+            triggerFill();
         }
-    };
+    }, 1000);
 
-    // Observar mudanças na URL
-    setInterval(checkUrlChange, 1000);
-
-    // Observar mudanças no DOM (para páginas dinâmicas) por 3 segundos
     const observer = new MutationObserver(() => {
-        setTimeout(() => tryAutoFill(3, 200), 500);
+        triggerFill();
     });
 
     observer.observe(document.body, {
@@ -59,8 +48,14 @@ import { Helper } from './helper';
         subtree: true,
     });
 
-    // Desconectar o observer após 3 segundos para evitar loops e travamentos
     setTimeout(() => {
         observer.disconnect();
-    }, 3000);
+    }, 2000); // Increased to 5s to catch late-loading forms
+
+    // Listen for profile changes to re-fill immediately
+    browser.storage.onChanged.addListener((changes) => {
+        if (changes.currentProfile) {
+            tryAutoFill(); 
+        }
+    });
 })();

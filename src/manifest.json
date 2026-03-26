@@ -1,9 +1,9 @@
 {
     "{{chrome}}.manifest_version": 3,
     "{{firefox}}.manifest_version": 2,
-    "name": "Auto preenchimento",
+    "name": "AutoFill",
     "description": "AutoFill inputs in all page with forms.",
-    "version": "1.1.4",
+    "version": "1.2.0",
     "permissions": [
         "storage",
         "scripting",
@@ -37,21 +37,25 @@
     "content_scripts": [
         {
             "matches": [
-                "<all_urls>"
+                "<all_urls>",
+                "http://localhost/*",
+                "https://localhost/*"
             ],
             "js": [
-                "src/utils/autofill.ts"
+                "src/content-script-main.ts"
             ],
             "run_at": "document_idle"
-        },
+        }
+    ],
+    "web_accessible_resources": [
         {
+            "resources": [
+                "global.css",
+                "favicon-32x32.png"
+            ],
             "matches": [
                 "<all_urls>"
-            ],
-            "js": [
-                "src/utils/floating-button.ts"
-            ],
-            "run_at": "document_idle"
+            ]
         }
     ]
 }
