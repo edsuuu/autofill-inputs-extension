@@ -150,6 +150,9 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
                                                     <option value="cnpj">CNPJ</option>
                                                     <option value="cep">CEP</option>
                                                     <option value="company">Empresa</option>
+                                                    <option value="kwp">kWp (1-10)</option>
+                                                    <option value="price">Valor (1k-5k)</option>
+                                                    <option value="kwh">kWh (300-500)</option>
                                                 </select>
                                             )}
                                         </div>

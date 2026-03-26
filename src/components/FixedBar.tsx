@@ -53,6 +53,54 @@ export const FixedBar: React.FC = () => {
 
     const lastWindowSize = React.useRef({ w: window.innerWidth, h: window.innerHeight });
 
+    const BAR_HEIGHT = 50;
+    const MOUNT_ID = 'autofill-extension-root';
+
+    const adjustFixedElements = (show: boolean) => {
+        // Find "Pre-Header" environment flags (Local, Develop, Homolog, Sandbox)
+        const envBar = document.querySelector('div.fixed.top-0.left-0.w-full.py-2') as HTMLElement;
+        const envBarHeight = envBar ? envBar.offsetHeight : 0;
+
+        if (show) setTopOffset(envBarHeight);
+        else setTopOffset(0);
+
+        const totalOffset = show ? (BAR_HEIGHT + envBarHeight) : 0;
+
+        const elements = document.querySelectorAll('*');
+        elements.forEach(el => {
+            const htmlEl = el as HTMLElement;
+            if (htmlEl.id === MOUNT_ID || htmlEl.closest(`#${MOUNT_ID}`)) return;
+
+            // Don't shift the environment bar itself
+            if (htmlEl === envBar) return;
+
+            const style = window.getComputedStyle(htmlEl);
+            if (style.position === 'fixed') {
+                const topValue = style.top;
+                const isAtTop = topValue === '0px' || topValue === '0' || topValue === 'auto';
+
+                if (show && isAtTop) {
+                    if (!htmlEl.dataset.autofillShifted || htmlEl.dataset.currentOffset !== String(totalOffset)) {
+                        if (!htmlEl.dataset.autofillShifted) {
+                            htmlEl.dataset.originalTop = topValue;
+                            htmlEl.dataset.autofillShifted = 'true';
+                        }
+                        htmlEl.dataset.currentOffset = String(totalOffset);
+                        htmlEl.style.transition = 'top 0.2s ease-in-out, margin-top 0.2s ease-in-out';
+                        htmlEl.style.top = `${totalOffset}px`;
+                    }
+                } else if (!show && htmlEl.dataset.autofillShifted) {
+                    htmlEl.style.top = htmlEl.dataset.originalTop === 'auto' ? '' : htmlEl.dataset.originalTop || '';
+                    delete htmlEl.dataset.originalTop;
+                    delete htmlEl.dataset.autofillShifted;
+                    delete htmlEl.dataset.currentOffset;
+                }
+            }
+        });
+
+        return totalOffset;
+    };
+
     useEffect(() => {
         const loadPos = async () => {
             const data = await browser.storage.local.get('floating_pos');
@@ -138,86 +186,38 @@ export const FixedBar: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     };
 
+    const currentOrigin = window.location.origin;
+    const isBlacklisted = blacklistedSites.includes(currentOrigin);
+    const shouldShowOffset = isEnabled && !isBlacklisted && isBarOpen && (barBehavior === 'all' || isSavedSite);
+
+    // Cleanup on unmount
     useEffect(() => {
-        const isVisible = isEnabled && !blacklistedSites.includes(window.location.origin) &&
-                         (barBehavior === 'all' || isSavedSite);
-
-        const BAR_HEIGHT = 50;
-        const MOUNT_ID = 'autofill-extension-root';
-
-        const adjustFixedElements = (show: boolean) => {
-            // Find "Pre-Header" environment flags (Local, Develop, Homolog, Sandbox)
-            const envBar = document.querySelector('div.fixed.top-0.left-0.w-full.py-2') as HTMLElement;
-            const envBarHeight = envBar ? envBar.offsetHeight : 0;
-
-            if (show) setTopOffset(envBarHeight);
-            else setTopOffset(0);
-
-            const totalOffset = show ? (BAR_HEIGHT + envBarHeight) : 0;
-
-            const elements = document.querySelectorAll('*');
-            elements.forEach(el => {
-                const htmlEl = el as HTMLElement;
-                if (htmlEl.id === MOUNT_ID || htmlEl.closest(`#${MOUNT_ID}`)) return;
-
-                // Don't shift the environment bar itself
-                if (htmlEl === envBar) return;
-
-                const style = window.getComputedStyle(htmlEl);
-                if (style.position === 'fixed') {
-                    const topValue = style.top;
-                    const isAtTop = topValue === '0px' || topValue === '0' || topValue === 'auto';
-
-                    if (show && isAtTop) {
-                        if (!htmlEl.dataset.autofillShifted || htmlEl.dataset.currentOffset !== String(totalOffset)) {
-                            if (!htmlEl.dataset.autofillShifted) {
-                                htmlEl.dataset.originalTop = topValue;
-                                htmlEl.dataset.autofillShifted = 'true';
-                            }
-                            htmlEl.dataset.currentOffset = String(totalOffset);
-                            htmlEl.style.transition = 'top 0.2s ease-in-out, margin-top 0.2s ease-in-out';
-                            htmlEl.style.top = `${totalOffset}px`;
-                        }
-                    } else if (!show && htmlEl.dataset.autofillShifted) {
-                        htmlEl.style.top = htmlEl.dataset.originalTop === 'auto' ? '' : htmlEl.dataset.originalTop || '';
-                        delete htmlEl.dataset.originalTop;
-                        delete htmlEl.dataset.autofillShifted;
-                        delete htmlEl.dataset.currentOffset;
-                    }
-                }
-            });
-
-            return totalOffset;
-        };
-
-        const observer = new MutationObserver(() => {
-            if (isVisible && isBarOpen) {
-                adjustFixedElements(true);
-            }
-        });
-
-        if (isVisible && isBarOpen) {
-            const finalOffset = adjustFixedElements(true);
-            document.body.style.transition = 'padding-top 0.2s ease-in-out';
-            document.body.style.paddingTop = `${finalOffset}px`;
-            observer.observe(document.body, { childList: true, subtree: true });
-        } else {
-            document.body.style.paddingTop = '';
-            if (document.body.style.transition.includes('padding-top')) {
-                document.body.style.transition = '';
-            }
+        return () => {
             adjustFixedElements(false);
+            document.body.style.paddingTop = '';
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!shouldShowOffset) {
+            adjustFixedElements(false);
+            document.body.style.paddingTop = '';
+            return;
         }
 
+        const finalOffset = adjustFixedElements(true);
+        document.body.style.paddingTop = `${finalOffset}px`;
+        
+        const observer = new MutationObserver(() => {
+            adjustFixedElements(true);
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
         return () => {
-            document.body.style.paddingTop = '';
-            if (document.body.style.transition.includes('padding-top')) {
-                document.body.style.transition = '';
-            }
-            adjustFixedElements(false);
             observer.disconnect();
         };
-    }, [isBarOpen, isEnabled, blacklistedSites, barBehavior, isSavedSite]);
+    }, [shouldShowOffset]);
 
     useEffect(() => {
         const checkSite = async () => {
@@ -245,10 +245,6 @@ export const FixedBar: React.FC = () => {
 
     if (isLoading) return null;
 
-    // Blacklist check: hide bar if site is blacklisted
-    const currentOrigin = window.location.origin;
-    const isBlacklisted = blacklistedSites.includes(currentOrigin);
-
     if (!isEnabled || isBlacklisted) return null;
     if (barBehavior === 'per-site' && !isSavedSite) return null;
 
@@ -260,6 +256,16 @@ export const FixedBar: React.FC = () => {
 
     const handleSave = async () => {
         const result = await AutofillService.captureAndSave(window.location.href, currentProfile);
+        if (result.success) {
+            setIsSavedSite(true);
+            showToast(result.message, 'success');
+        } else {
+            showToast(result.message, 'error');
+        }
+    };
+
+    const handleSmartFill = async () => {
+        const result = await AutofillService.smartFillAndSave(window.location.href, currentProfile);
         if (result.success) {
             setIsSavedSite(true);
             showToast(result.message, 'success');
@@ -318,12 +324,30 @@ export const FixedBar: React.FC = () => {
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
                 </svg>
-            ), label: 'Salvar', action: handleSave },
+            ), label: isSavedSite ? 'Atualizar' : 'Salvar', action: handleSave },
             { icon: (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
             ), label: 'Preencher', action: handleFill },
+        ];
+
+        // Mostra Smart Fill se não estiver salvo OU for site com campos mas sem dados salvos
+        if (!isSavedSite || isNewSite) {
+            menuActions.push({
+                icon: (
+                    <div className="bg-indigo-600 p-1.5 rounded-full shadow-lg shadow-indigo-950/20 group-hover:scale-110 transition-transform">
+                        <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                ),
+                label: 'Smart Fill',
+                action: handleSmartFill
+            });
+        }
+
+        menuActions.push(
             { icon: (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -337,7 +361,10 @@ export const FixedBar: React.FC = () => {
                 await setIsFloatingEnabled(false);
                 showToast('Botão flutuante desativado', 'error');
             } }
-        ];
+        );
+
+        console.log(`[AutoFill] Radial Menu: isSaved=${isSavedSite}, isNew=${isNewSite}, items=${menuActions.length}`);
+
 
         return (
             <div
@@ -511,6 +538,18 @@ export const FixedBar: React.FC = () => {
                                 </button>
                             )}
                         </div>
+                        {!isSavedSite && (
+                            <button
+                                onClick={handleSmartFill}
+                                className="ml-3 px-3 h-7 bg-indigo-600 hover:bg-slate-900 text-white rounded-md text-[10px] font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 cursor-pointer border border-indigo-400/20"
+                                title="Smart Fill: Detecta, preenche e salva campos automaticamente"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Smart Fill
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -520,7 +559,7 @@ export const FixedBar: React.FC = () => {
                             addSiteToBlacklist(window.location.origin);
                             showToast('Site bloqueado!', 'success');
                         }}
-                        className="text-[10px] text-white/30 hover:text-rose-400 font-semibold uppercase tracking-widest transition-colors cursor-pointer"
+                        className="text-[10px] text-rose-400 hover:bg-rose-400/20 rounded-md p-2 font-semibold uppercase tracking-widest transition-colors cursor-pointer"
                     >
                         Blacklist
                     </button>

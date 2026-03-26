@@ -9,11 +9,11 @@ export class AutofillService {
     public static async fillForm(url: string, automatic: boolean = false, profile?: string): Promise<void> {
         const settings = await AutofillSaver.getSettings();
         const activeProfile = profile || settings.currentProfile || 'Padrão';
-        
+
         // Block if globally disabled or if site is blacklisted
         const currentOrigin = new URL(url).origin;
         const isBlacklisted = settings.blacklistedSites?.includes(currentOrigin);
-        
+
         if (settings.enabled === false || isBlacklisted) {
             return;
         }
@@ -22,7 +22,7 @@ export class AutofillService {
         if (!fields || fields.length === 0) return;
         for (const field of fields) {
             let elements: (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)[] = [];
-            
+
             if (field.id) {
                 const el = document.getElementById(field.id);
                 if (el) elements = [el as any];
@@ -79,7 +79,7 @@ export class AutofillService {
     }
 
     public static async captureAndSave(url: string, profile: string = 'Padrão'): Promise<{ success: boolean; message: string; count?: number }> {
-        const fields = AutofillMatcher.getFieldsToSave();
+        const fields = await this.getFieldsToSave(false);
         if (fields.length === 0) {
             return { success: false, message: 'Nenhum campo encontrado para salvar!' };
         }
@@ -103,25 +103,76 @@ export class AutofillService {
             return { success: false, message: 'Site na blacklist!' };
         }
 
-        const fields = AutofillMatcher.getFieldsToSave();
+        const fields = await this.getFieldsToSave(true);
         if (fields.length === 0) return { success: false, message: 'Nenhum campo detectado!' };
 
         // Fill immediately with guessed values
         for (const field of fields) {
             let value = field.value;
-            if (field.fakerType) value = await this.generateFakerValue(field.fakerType);
-            
+            if (field.fakerType) {
+                value = await this.generateFakerValue(field.fakerType);
+                field.value = value; // Update the field object with the generated value
+            }
+
             let selector = "";
-            if (field.name) selector += `[name="${field.name}"]`;
+            if (field.name) selector += `[name="${CSS.escape(field.name)}"]`;
             if (field.id) selector += (selector ? ", " : "") + `#${CSS.escape(field.id)}`;
-            
+
+            if (!selector) continue;
+
             const elements = document.querySelectorAll(selector) as NodeListOf<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
             elements.forEach(el => this.setElementValue(el, value));
         }
 
-        // Save structure
+        // Save structure with the newly generated values
         await AutofillSaver.saveFieldsForUrl(url, fields, profile);
         return { success: true, message: `Campos detectados, preenchidos e salvos no perfil "${profile}"!` };
+    }
+
+    public static async getFieldsToSave(autoIdentify: boolean = false): Promise<FormField[]> {
+        console.log("[AutoFill] Iniciando captura de campos (V1.2.4-STABLE)...");
+        const selector = "input:not([type='hidden']):not([type='submit']):not([type='button']):not([type='reset']):not([type='file']), textarea, select, [contenteditable='true'], [role='textbox']";
+        const inputs = Array.from(document.querySelectorAll(selector)) as (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)[];
+        console.log(`[AutoFill] Total de candidatos encontrados: ${inputs.length}`);
+
+        return inputs
+            .filter((input) => {
+                const nameOrId = (input.name || input.id || '').toLowerCase();
+                const type = (input as any).type || '';
+
+                // Common technical fields to ignore (using more specific patterns to avoid false positives like 'equipment')
+                const ignorePatterns = [
+                    /(_token|token_|^token$)/i,
+                    /(^method$|_method)/i,
+                    /(^uri$|^url$)/i,
+                    /(^ip$|ip_address|ip_addr)/i,
+                    /(_search|^search$)/i,
+                    /datasets-switcher/i
+                ];
+
+                const blockedMatch = ignorePatterns.some(regex => regex.test(nameOrId));
+                if (blockedMatch) {
+                    console.log(`[AutoFill] IGNORADO (Filtro técnico): ${nameOrId}`);
+                    return false;
+                }
+
+                // Ensure it has some way to be identified
+                const hasLabel = !!input.closest('label') || (input.id && !!document.querySelector(`label[for="${CSS.escape(input.id)}"]`));
+                const hasPlaceholder = 'placeholder' in input && !!(input as any).placeholder;
+                const hasSiblings = !!input.parentElement && input.parentElement.children.length > 1;
+
+                if (!input.name && !input.id && !hasLabel && !hasPlaceholder && !hasSiblings) {
+                    console.log(`[AutoFill] IGNORADO (Sem ID/Name/Label/Meta):`, input);
+                    return false;
+                }
+
+                return true;
+            })
+            .map((input) => {
+                const field = AutofillMatcher.mapField(input, autoIdentify);
+                console.log(`[AutoFill] Capturando: ${field.name || field.id || field.label || field.placeholder} (${field.type}) value=${field.value}`);
+                return field;
+            });
     }
 
     private static mergeFields(existing: FormField[], incoming: FormField[]): FormField[] {
@@ -135,14 +186,14 @@ export class AutofillService {
             const key = this.createKey(f);
             if (existingMap.has(key)) {
                 const old = existingMap.get(key);
-                
+
                 // Detection of manual override
                 const wasFaker = !!old?.fakerType;
                 const lastFilledValue = this.lastFilledValues.get(key);
-                
+
                 let isChanged = false;
                 const currentVal = String(f.value || '').trim();
-                
+
                 if (lastFilledValue !== undefined) {
                     const lastVal = String(lastFilledValue).trim();
                     isChanged = lastVal !== currentVal;
@@ -167,7 +218,7 @@ export class AutofillService {
                     f.useUuid = true;
                     console.log(`[AutoFill] Mantendo modo UUID para ${key} (isento de detecção de mudança).`);
                 }
-                
+
                 console.log(`[AutoFill] Estado Final de ${key}: faker=${f.fakerType}, uuid=${f.useUuid}, value="${f.value}"`);
             }
             merged.push(f);
@@ -187,11 +238,11 @@ export class AutofillService {
         const n = String(f.name || '').trim();
         const i = String(f.id || '').trim();
         const t = String(f.type || '').trim();
-        const p = String(f.placeholder || '').trim();
+        const l = String(f.label || '').trim();
         // ONLY use attrValue for radio and checkbox to ensure unique group members
-        // For other fields, name/id/type is enough.
         const av = (t === 'radio' || t === 'checkbox') ? String(f.attrValue || '').trim() : '';
-        return `${n}_${i}_${t}_${p}_${av}`;
+        // Note: we removed placeholder from key as it is often dynamic
+        return `${n}|${i}|${t}|${l}|${av}`;
     }
 
     private static setElementValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: any) {
@@ -209,8 +260,9 @@ export class AutofillService {
             }
         } else {
             const target = value ?? "";
-            if (el.value !== String(target)) {
-                el.value = String(target);
+            if (el.value !== String(target) || (el as any).innerText !== String(target)) {
+                if (el.value !== undefined) el.value = String(target);
+                else (el as any).innerText = String(target);
                 changed = true;
             }
         }
@@ -255,11 +307,30 @@ export class AutofillService {
         return crypto.randomUUID();
     }
 
+    private static generatePrice(): string {
+        const value = Math.random() * (5000 - 2000) + 2000;
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    private static generateKwp(): string {
+        const value = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+        return value.toFixed(2);
+    }
+
+    private static generateKwh(): string {
+        const values = [300, 400, 500];
+        return String(values[Math.floor(Math.random() * values.length)]);
+    }
+
     private static async generateFakerValue(type: string): Promise<string> {
         try {
             // CPF and CNPJ are handled locally to avoid unnecessary message overhead if they don't need Faker
             if (type === 'cpf') return this.generateCPF();
             if (type === 'cnpj') return this.generateCNPJ();
+            if (type === 'uuid') return this.generateUuid();
+            if (type === 'price') return this.generatePrice();
+            if (type === 'kwp') return this.generateKwp();
+            if (type === 'kwh') return this.generateKwh();
 
             // All other faker types are handled by the background script to keep content script size small
             return await browser.runtime.sendMessage({ action: 'GENERATE_FAKER_VALUE', type });

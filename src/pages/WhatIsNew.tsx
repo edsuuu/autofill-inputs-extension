@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import browser from 'webextension-polyfill';
 
 export default function WhatIsNew() {
     const navigate = useNavigate();
@@ -7,7 +8,7 @@ export default function WhatIsNew() {
 
     const steps = [
         {
-            version: "2",
+            version: browser.runtime.getManifest().version,
             date: "25 de Março, 2026",
             title: "Bem-vindo ao AutoFill",
             description: "A barra de ferramentas foi totalmente reinventada. Mais rápida, elegante e poderosa do que nunca.",
