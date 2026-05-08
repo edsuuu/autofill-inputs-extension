@@ -7,7 +7,8 @@ import {
     XMarkIcon,
     ChevronDownIcon,
     ChevronUpIcon,
-    GlobeAltIcon
+    GlobeAltIcon,
+    DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 
 interface SiteCardProps {
@@ -15,9 +16,10 @@ interface SiteCardProps {
     fields: FormField[];
     onSave: (url: string, fields: FormField[]) => void;
     onDelete: (url: string) => void;
+    onClone: (url: string, fields: FormField[]) => void;
 }
 
-const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) => {
+const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete, onClone }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [editedFields, setEditedFields] = useState<FormField[]>(fields);
@@ -26,6 +28,15 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
         const newFields = [...editedFields];
         newFields[index] = { ...newFields[index], ...updates };
         setEditedFields(newFields);
+    };
+
+    const handleRemoveField = (index: number) => {
+        const newFields = editedFields.filter((_, i) => i !== index);
+        setEditedFields(newFields);
+    };
+
+    const handleClone = () => {
+        onClone(url, fields);
     };
 
     const handleSave = () => {
@@ -85,6 +96,13 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
                                 <PencilSquareIcon className="w-5 h-5" />
                             </button>
                             <button
+                                onClick={handleClone}
+                                className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
+                                title="Copiar para outra URL"
+                            >
+                                <DocumentDuplicateIcon className="w-5 h-5" />
+                            </button>
+                            <button
                                 onClick={() => onDelete(url)}
                                 className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
                                 title="Excluir"
@@ -114,6 +132,13 @@ const SiteCard: React.FC<SiteCardProps> = ({ url, fields, onSave, onDelete }) =>
                                     </label>
                                     {isEditing && (
                                         <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleRemoveField(index)}
+                                                className="p-1 text-slate-300 hover:text-rose-500 transition-colors"
+                                                title="Remover campo"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
                                             <select
                                                 value={field.useUuid ? 'uuid' : (field.fakerType ? 'faker' : 'fixed')}
                                                 onChange={(e) => {

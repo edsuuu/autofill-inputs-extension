@@ -9,9 +9,9 @@ export default function WhatIsNew() {
     const steps = [
         {
             version: browser.runtime.getManifest().version,
-            date: "25 de Março, 2026",
-            title: "Bem-vindo ao AutoFill",
-            description: "A barra de ferramentas foi totalmente reinventada. Mais rápida, elegante e poderosa do que nunca.",
+            date: "8 de Maio, 2026",
+            title: "AutoFill v1.2.4",
+            description: "Mais controle, mais precisão e uma interface ainda mais polida para o seu dia a dia.",
             icon: (
                 <div className="w-20 h-20 bg-indigo-600 rounded-3xl shadow-xl shadow-indigo-100 flex items-center justify-center text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -21,34 +21,34 @@ export default function WhatIsNew() {
             )
         },
         {
-            title: "A Revolução do Top Bar",
-            description: "Substituímos o botão flutuante por uma barra fixa elegante no topo da página. Preenchimento instantâneo em um clique.",
+            title: "Gestão Total de Perfis",
+            description: "Agora você pode renomear seus perfis a qualquer momento. Toda a transição de dados é feita automaticamente para você.",
             icon: (
-                <div className="w-full h-12 bg-slate-900 rounded-xl border border-white/10 flex items-center px-4 gap-3">
-                    <div className="w-6 h-6 bg-indigo-600 rounded"></div>
-                    <div className="h-2 w-20 bg-slate-700 rounded"></div>
-                    <div className="h-6 w-16 bg-indigo-600 rounded-md ml-auto"></div>
-                </div>
-            )
-        },
-        {
-            title: "Inteligência & Pesquisa",
-            description: "Nova lógica de 'Smart Autofill' que detecta campos automaticamente e pesquisa instantânea no seu painel de controle.",
-            icon: (
-                <div className="w-20 h-20 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-600">
+                <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center text-amber-600">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                 </div>
             )
         },
         {
-            title: "Perfis e Correções",
-            description: "Gestão de perfis renovada e correções críticas em checkboxes e botões de rádio para 100% de precisão.",
+            title: "Clonagem de Configurações",
+            description: "Copie facilmente as configurações de um site para outro. Ideal para ambientes de teste ou sites com múltiplos domínios.",
+            icon: (
+                <div className="w-20 h-20 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    </svg>
+                </div>
+            )
+        },
+        {
+            title: "Inteligência & UX",
+            description: "Preenchimento ignora campos desativados (disabled). Nova interface com modais elegantes substituindo alertas do sistema.",
             icon: (
                 <div className="w-20 h-20 bg-indigo-100 rounded-3xl flex items-center justify-center text-indigo-600">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                 </div>
             )

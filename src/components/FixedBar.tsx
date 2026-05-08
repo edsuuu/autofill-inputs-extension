@@ -8,7 +8,7 @@ import { FloatingMenu } from './FixedBar/FloatingMenu';
 import { MainBar } from './FixedBar/MainBar';
 import { ToastList } from './FixedBar/ToastList';
 import Modal from './Modal';
-import ProfileModal from './ProfileModal';
+import InputModal from './InputModal';
 
 export const FixedBar: React.FC = () => {
     const {
@@ -166,11 +166,15 @@ export const FixedBar: React.FC = () => {
 
             <ToastList toasts={toasts} />
 
-            <ProfileModal
+            <InputModal
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
-                onSave={(name) => { addProfile(name); setCurrentProfile(name); }}
-                existingProfiles={profiles}
+                onConfirm={(name) => { addProfile(name); setCurrentProfile(name); }}
+                title="Novo Perfil"
+                description="Crie um perfil personalizado para organizar seus dados."
+                placeholder="Nome do perfil (ex: Compras)"
+                confirmText="Criar Perfil"
+                errorCheck={(val) => profiles.some(p => p.toLowerCase() === val.toLowerCase()) ? 'Um perfil com este nome já existe' : null}
                 isPopover={true}
             />
 

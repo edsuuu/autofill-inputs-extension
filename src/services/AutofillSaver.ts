@@ -38,6 +38,41 @@ export class AutofillSaver {
         }
     }
 
+    public static async renameProfile(oldName: string, newName: string): Promise<void> {
+        if (oldName === newName) return;
+        
+        // 1. Update profiles list
+        const profiles = await this.getProfiles();
+        const index = profiles.indexOf(oldName);
+        if (index !== -1) {
+            profiles[index] = newName;
+            await this.saveProfiles(profiles);
+        }
+
+        // 2. Update site data
+        const siteData = await this.getAllSiteData();
+        Object.keys(siteData).forEach(url => {
+            if (siteData[url][oldName]) {
+                siteData[url][newName] = siteData[url][oldName];
+                delete siteData[url][oldName];
+            }
+        });
+        await browser.storage.local.set({ [this.SITE_DATA_KEY]: siteData });
+
+        // 3. Update patterns data
+        const data = await browser.storage.local.get(this.PATTERNS_KEY);
+        const patternsData = data[this.PATTERNS_KEY] as Record<string, UrlPattern> || {};
+        // Note: patterns don't currently have a profile field in the type but let's be safe
+        // if they ever do, they'd be here.
+        
+        // 4. Update settings if it was the current profile
+        const settings = await this.getSettings();
+        if (settings.currentProfile === oldName) {
+            settings.currentProfile = newName;
+            await this.saveSettings(settings);
+        }
+    }
+
     public static async getFieldsForUrl(url: string, profile: string = 'Padrão'): Promise<FormField[]> {
         await this.runMigration();
         const normalized = this.normalizeUrl(url);

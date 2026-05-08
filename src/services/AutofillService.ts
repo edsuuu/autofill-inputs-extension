@@ -128,6 +128,7 @@ export class AutofillService {
 
         return inputs
             .filter((input) => {
+                if (input.disabled) return false;
                 const nameOrId = (input.name || input.id || '').toLowerCase();
                 const type = (input as any).type || '';
                 const ignorePatterns = [
@@ -212,6 +213,7 @@ export class AutofillService {
     }
 
     private static setElementValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: any) {
+        if (el.disabled) return;
         if (el.tagName === "SELECT") {
             this.setSelectSmart(el as HTMLSelectElement, value);
             return;
@@ -240,6 +242,7 @@ export class AutofillService {
     }
 
     private static setSelectSmart(select: HTMLSelectElement, value: any) {
+        if (select.disabled) return;
         const wanted = String(value ?? "").trim();
         const normalizedWanted = this.normalize(wanted);
 

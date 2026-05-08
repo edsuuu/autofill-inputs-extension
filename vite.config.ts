@@ -19,6 +19,9 @@ export default defineConfig({
         react(),
         webExtension({
             manifest: generateManifest,
+            webExtConfig: {
+                chromiumBinary: "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            },
         }),
         tailwindcss(),
     ]

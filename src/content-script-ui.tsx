@@ -4,6 +4,8 @@ import browser from 'webextension-polyfill';
 import { FixedBar } from './components/FixedBar';
 import { AutofillProvider } from './context/AutofillContext';
 
+import cssText from './global.css?inline';
+
 const MOUNT_ID = 'autofill-extension-root';
 
 async function init() {
@@ -15,9 +17,6 @@ async function init() {
     const shadow = container.attachShadow({ mode: 'open' });
     
     try {
-        const cssUrl = browser.runtime.getURL('global.css');
-        const response = await fetch(cssUrl);
-        const cssText = await response.text();
         const style = document.createElement('style');
         style.textContent = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');\n${cssText}\n* { font-family: 'Inter', sans-serif !important; }`;
         shadow.appendChild(style);

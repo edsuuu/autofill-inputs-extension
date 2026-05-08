@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Modal from '../components/Modal';
-import ProfileModal from '../components/ProfileModal';
+import InputModal from '../components/InputModal';
 import SiteCard from '../components/SiteCard';
 import { AutofillSaver } from '../services/AutofillSaver';
 import { type UrlPattern, type FormField } from '../types';
@@ -14,7 +14,7 @@ interface SavedForm {
 }
 
 export default function Options() {
-    const { profiles, addProfile, deleteProfile, blacklistedSites, addSiteToBlacklist, removeSiteFromBlacklist } = useAutofill();
+    const { profiles, addProfile, deleteProfile, renameProfile, blacklistedSites, addSiteToBlacklist, removeSiteFromBlacklist, showToast } = useAutofill();
     const [groupedForms, setGroupedForms] = useState<Record<string, SavedForm[]>>({});
     const [urlPatterns, setUrlPatterns] = useState<UrlPattern[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +28,10 @@ export default function Options() {
     };
     const [selectedProfile, setSelectedProfile] = useState<string>('all');
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [cloneSource, setCloneSource] = useState<{ url: string, profile: string, fields: FormField[] } | null>(null);
+    const [renameSource, setRenameSource] = useState<string | null>(null);
     const [blacklistFilter, setBlacklistFilter] = useState('');
     const [newBlacklistSite, setNewBlacklistSite] = useState('');
     const [modal, setModal] = useState<{
@@ -92,10 +96,30 @@ export default function Options() {
         try {
             await AutofillSaver.saveFieldsForUrl(url, newFields, profile);
             await loadSavedForms();
-            showModal('success', 'Sucesso', 'Alterações salvas com sucesso!');
+            showToast('Alterações salvas com sucesso!', 'success');
         } catch {
-            showModal('error', 'Erro', 'Erro ao salvar alterações!');
+            showToast('Erro ao salvar alterações!', 'error');
         }
+    };
+
+    const handleCloneSite = async (oldUrl: string, newUrl: string, profile: string, fields: FormField[]) => {
+        try {
+            await AutofillSaver.saveFieldsForUrl(newUrl, fields, profile);
+            await loadSavedForms();
+            showToast(`Copiado para ${newUrl} com sucesso!`, 'success');
+        } catch {
+            showToast('Erro ao copiar para nova URL!', 'error');
+        }
+    };
+
+    const handleOpenCloneModal = (url: string, profile: string, fields: FormField[]) => {
+        setCloneSource({ url, profile, fields });
+        setIsCloneModalOpen(true);
+    };
+
+    const handleOpenRenameModal = (profile: string) => {
+        setRenameSource(profile);
+        setIsRenameModalOpen(true);
     };
 
     const loadUrlPatterns = async () => {
@@ -122,9 +146,9 @@ export default function Options() {
             await AutofillSaver.saveUrlPattern(pattern, form.fields, true);
             setNewPattern('');
             await loadUrlPatterns();
-            showModal('success', 'Sucesso', 'Padrão de URL criado com sucesso!');
+            showToast('Padrão de URL criado com sucesso!', 'success');
         } catch {
-            showModal('error', 'Erro', 'Erro ao criar padrão de URL!');
+            showToast('Erro ao criar padrão de URL!', 'error');
         }
     };
 
@@ -133,9 +157,9 @@ export default function Options() {
             try {
                 await AutofillSaver.deleteUrlPattern(pattern);
                 await loadUrlPatterns();
-                showModal('success', 'Sucesso', 'Padrão excluído com sucesso!');
+                showToast('Padrão excluído com sucesso!', 'success');
             } catch {
-                showModal('error', 'Erro', 'Erro ao excluir padrão!');
+                showToast('Erro ao excluir padrão!', 'error');
             }
         });
     };
@@ -154,8 +178,9 @@ export default function Options() {
             a.download = `autofill-backup-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
             URL.revokeObjectURL(url);
+            showToast('Dados exportados com sucesso!', 'success');
         } catch (error) {
-            showModal('error', 'Erro', 'Falha ao exportar os dados.');
+            showToast('Falha ao exportar os dados.', 'error');
         }
     };
 
@@ -328,6 +353,7 @@ export default function Options() {
                                                             fields={form.fields}
                                                             onSave={(url, fields) => handleSaveForm(url, profile, fields)}
                                                             onDelete={(url) => handleDeleteForm(url, profile)}
+                                                            onClone={(url, fields) => handleOpenCloneModal(url, profile, fields)}
                                                         />
                                                     ))}
                                                 </div>
@@ -367,19 +393,31 @@ export default function Options() {
                                             </div>
                                         </div>
                                         {profile !== 'Padrão' && (
-                                            <button
-                                                onClick={() => deleteProfile(profile)}
-                                                className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                    />
-                                                </svg>
-                                            </button>
+                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button
+                                                    onClick={() => handleOpenRenameModal(profile)}
+                                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
+                                                    title="Renomear perfil"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteProfile(profile)}
+                                                    className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                                                    title="Excluir perfil"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 ))}
@@ -738,14 +776,47 @@ export default function Options() {
                 confirmText={modal.type === 'confirm' ? 'Confirmar' : 'Fechar'}
                 cancelText="Cancelar"
             />
-            <ProfileModal
+            <InputModal
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
-                onSave={(name) => {
+                onConfirm={(name) => {
                     addProfile(name);
                     setIsProfileModalOpen(false);
                 }}
-                existingProfiles={profiles}
+                title="Novo Perfil"
+                description="Crie um perfil personalizado para organizar seus dados."
+                placeholder="Nome do perfil (ex: Compras)"
+                confirmText="Criar Perfil"
+                errorCheck={(val) => profiles.some(p => p.toLowerCase() === val.toLowerCase()) ? 'Um perfil com este nome já existe' : null}
+            />
+            <InputModal
+                isOpen={isCloneModalOpen}
+                onClose={() => setIsCloneModalOpen(false)}
+                onConfirm={(newUrl) => {
+                    if (cloneSource) {
+                        handleCloneSite(cloneSource.url, newUrl, cloneSource.profile, cloneSource.fields);
+                    }
+                }}
+                title="Copiar para outra URL"
+                description="Os campos salvos deste site serão copiados para a nova URL abaixo."
+                placeholder="https://exemplo.com/pagina"
+                initialValue={cloneSource?.url || ''}
+                confirmText="Confirmar Cópia"
+                errorCheck={(val) => val === cloneSource?.url ? 'Digite uma URL diferente da atual' : null}
+            />
+            <InputModal
+                isOpen={isRenameModalOpen}
+                onClose={() => setIsRenameModalOpen(false)}
+                onConfirm={(newName) => {
+                    if (renameSource) {
+                        renameProfile(renameSource, newName);
+                    }
+                }}
+                title="Renomear Perfil"
+                description={`Alterando o nome do perfil "${renameSource}". Todos os dados vinculados serão mantidos.`}
+                initialValue={renameSource || ''}
+                confirmText="Salvar Alterações"
+                errorCheck={(val) => profiles.some(p => p.toLowerCase() === val.toLowerCase() && p !== renameSource) ? 'Um perfil com este nome já existe' : null}
             />
         </div>
     );

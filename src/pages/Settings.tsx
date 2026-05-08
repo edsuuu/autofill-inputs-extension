@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import browser from 'webextension-polyfill';
 import { AutofillSaver } from '../services/AutofillSaver';
+import { Switch } from '../components/Switch';
 
 export default function Settings() {
     const [settings, setSettings] = useState({
@@ -74,15 +75,13 @@ export default function Settings() {
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    <div className="p-8 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800">Status Geral</h3>
-                            <p className="text-sm text-slate-500">Habilitar ou desabilitar o preenchimento automático globalmente</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" checked={settings.enabled} onChange={(e) => updateSetting('enabled', e.target.checked)} />
-                            <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
+                    <div className="p-8">
+                        <Switch 
+                            checked={settings.enabled}
+                            onChange={(val) => updateSetting('enabled', val)}
+                            label="Status Geral"
+                            sublabel="Habilitar ou desabilitar o preenchimento automático globalmente"
+                        />
                     </div>
 
                     <div className="p-8 space-y-6">
@@ -110,30 +109,6 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    <div className="p-8 space-y-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800">Sites Ignorados</h3>
-                            <p className="text-sm text-slate-500">Gerencie os sites onde o AutoFill nunca deve aparecer</p>
-                        </div>
-
-                        {settings.blacklistedSites.length === 0 ? (
-                            <p className="text-sm text-slate-400 italic">Nenhum site na blacklist no momento.</p>
-                        ) : (
-                            <div className="space-y-2">
-                                {settings.blacklistedSites.map(site => (
-                                    <div key={site} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span className="text-sm font-medium text-slate-600">{site}</span>
-                                        <button 
-                                            onClick={() => removeFromBlacklist(site)}
-                                            className="text-rose-500 hover:text-rose-700 text-xs font-bold px-3 py-1 hover:bg-rose-50 rounded-lg transition-all"
-                                        >
-                                            Remover
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 <div className="bg-rose-50 rounded-3xl p-8 border border-rose-100 flex flex-col md:flex-row items-center justify-between gap-6">

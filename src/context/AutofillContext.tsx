@@ -24,6 +24,7 @@ interface AutofillContextType extends AutofillState {
     showToast: (message: string, type: 'success' | 'error') => void;
     addProfile: (name: string) => Promise<void>;
     deleteProfile: (name: string) => Promise<void>;
+    renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteSiteData: (url: string, profile: string) => Promise<void>;
 }
 
@@ -166,6 +167,20 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         showToast(`Perfil "${name}" removido.`, 'success');
     };
 
+    const renameProfile = async (oldName: string, newName: string) => {
+        if (newName === oldName) return;
+        if (state.profiles.includes(newName)) {
+            showToast(`O perfil "${newName}" já existe.`, 'error');
+            return;
+        }
+        await AutofillSaver.renameProfile(oldName, newName);
+        const profiles = state.profiles.map(p => p === oldName ? newName : p);
+        const nextState: Partial<AutofillState> = { profiles };
+        if (state.currentProfile === oldName) nextState.currentProfile = newName;
+        setState(prev => ({ ...prev, ...nextState }));
+        showToast(`Perfil renomeado para "${newName}"`, 'success');
+    };
+
     const deleteSiteData = async (url: string, profile: string) => {
         await AutofillSaver.deleteSiteData(url, profile);
         showToast(`Dados removidos de ${profile}`, 'success');
@@ -183,6 +198,7 @@ export const AutofillProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             showToast,
             addProfile,
             deleteProfile,
+            renameProfile,
             deleteSiteData
         }}>
             {children}
